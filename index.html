@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MTNEWS</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MTNEWS">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png">
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAibmFtZSI6ICJNVENORVdTIiwNCiAgInNob3J0X25hbWUiOiAiTVRORVdTIiwNCiAgImRlc2NyaXB0aW9uIjogIkFsbCBuZXdzIGFib3V0IE1UUlAgU2VydmVyLiIsDQogICJpY29ucyI6IFsNCiAgICB7DQogICAgICAic3JjIjogImh0dHBzOi8vaS5wb3N0aW1nLmNjL1BycXZKNVJYLyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjUxMngxMjgiDQogICAgfQ0KICBdLA0KICAic3RhcnRfdXJsIjogIi8iLA0KICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwNCiAgInRoZW1lX2NvbG9yIjogIiMxYTFhMWEiLA0KICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExYTFhIg0KfQ==">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            borderRadius: {
+              'glass': '30px',
+            },
+            keyframes: {
+              gradientBG: {
+                '0%, 100%': { backgroundPosition: '0% 50%' },
+                '50%': { backgroundPosition: '100% 50%' },
+              },
+              borderRotate: {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' },
+              },
+              fadeInDown: {
+                '0%': { opacity: '0', transform: 'translateY(-20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              fadeOutUp: {
+                '0%': { opacity: '1', transform: 'translateY(0)' },
+                '100%': { opacity: '0', transform: 'translateY(-20px)' },
+              }
+            },
+            animation: {
+              gradientBG: 'gradientBG 15s ease infinite',
+              borderRotate: 'borderRotate 4s linear infinite',
+              fadeInDown: 'fadeInDown 0.5s ease-out forwards',
+              fadeOutUp: 'fadeOutUp 0.5s ease-in forwards',
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      .glass-card-highlight > .highlight-overlay {
+          position: absolute;
+          inset: 0;
+          border-radius: 30px;
+          background: linear-gradient(to top, rgba(255, 255, 255, 0.3) 0%, transparent 75%);
+          pointer-events: none;
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          z-index: 0; /* Important */
+      }
+      .glass-card-highlight:hover > .highlight-overlay {
+          opacity: 1;
+          transform: translateY(0);
+      }
+      /* Ensure content is above the overlay */
+      .glass-card-highlight > :not(.highlight-overlay) {
+          position: relative;
+          z-index: 1;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

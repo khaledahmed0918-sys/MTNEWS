@@ -1,0 +1,5 @@
+{
+  "name": "MTNEWS",
+  "description": "A web application to share all news about the MTRP Server, featuring threads, images, links, and more with a stunning animated interface.",
+  "requestFramePermissions": []
+}
