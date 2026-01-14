@@ -1,0 +1,273 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MTNEWS</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MTNEWS">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png">
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAibmFtZSI6ICJNVENORVdTIiwNCiAgInNob3J0X25hbWUiOiAiTVRORVdTIiwNCiAgImRlc2NyaXB0aW9uIjogIkFsbCBuZXdzIGFib3V0IE1UUlAgU2VydmVyLiIsDQogICJpY29ucyI6IFsNCiAgICB7DQogICAgICAic3JjIjogImh0dHBzOi8vaS5wb3N0aW1nLmNjL1BycXZKNVJYLyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjUxMngxMjgiDQogICAgfQ0KICBdLA0KICAic3RhcnRfdXJsIjogIi8iLA0KICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwNCiAgInRoZW1lX2NvbG9yIjogIiMxYTFhMWEiLA0KICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExYTFhIg0KfQ==">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            borderRadius: {
+              'glass': '30px',
+              'glass-sm': '15px',
+            },
+            keyframes: {
+              gradientBG: {
+                '0%, 100%': { backgroundPosition: '0% 50%' },
+                '50%': { backgroundPosition: '100% 50%' },
+              },
+              borderRotate: {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' },
+              },
+              fadeInDown: {
+                '0%': { opacity: '0', transform: 'translateY(-20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              fadeOutUp: {
+                '0%': { opacity: '1', transform: 'translateY(0)' },
+                '100%': { opacity: '0', transform: 'translateY(-20px)' },
+              },
+              spinSlow: {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' },
+              },
+              shake: {
+                '0%, 100%': { transform: 'translateX(0)' },
+                '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
+                '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
+              },
+              pulseGreen: {
+                '0%': { boxShadow: '0 0 0 0 rgba(74, 222, 128, 0.7)' },
+                '70%': { boxShadow: '0 0 0 10px rgba(74, 222, 128, 0)' },
+                '100%': { boxShadow: '0 0 0 0 rgba(74, 222, 128, 0)' },
+              },
+              fall: {
+                '0%': { opacity: 0, transform: 'translateY(-10px)' },
+                '10%': { opacity: 1 },
+                '90%': { opacity: 1 },
+                '100%': { opacity: 0, transform: 'translateY(100vh)' }
+              }
+            },
+            animation: {
+              gradientBG: 'gradientBG 15s ease infinite',
+              borderRotate: 'borderRotate 4s linear infinite',
+              fadeInDown: 'fadeInDown 0.5s ease-out forwards',
+              fadeOutUp: 'fadeOutUp 0.5s ease-in forwards',
+              spinSlow: 'spinSlow 8s linear infinite',
+              shake: 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+              pulseGreen: 'pulseGreen 2s infinite',
+              fall: 'fall 16s linear infinite'
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      /* General Styles */
+      html, body, #root {
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+      }
+
+      body {
+        overscroll-behavior-y: none;
+      }
+      
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      /* Clean Card Hover Effect */
+      .glass-card-hover {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      /* Leaflet Map Styles */
+      .leaflet-container {
+        background: #0fa8d2;
+        border-radius: 30px;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+      }
+      /* High Quality Image Rendering */
+      .leaflet-image-layer, .leaflet-tile {
+        image-rendering: high-quality; 
+        image-rendering: -webkit-optimize-contrast;
+      }
+      
+      /* Map Controls Position Fix */
+      .leaflet-control-container .leaflet-top,
+      .leaflet-control-container .leaflet-bottom {
+        z-index: 800; /* Ensure built-in controls are below our dropdown */
+      }
+
+      .highlighted-marker {
+        filter: drop-shadow(0 0 10px #4ade80) drop-shadow(0 0 20px #4ade80) brightness(1.5);
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+      
+      /* Improved Input placeholders for RTL */
+      input::placeholder {
+        opacity: 0.6;
+        transition: opacity 0.3s;
+      }
+      input:focus::placeholder {
+        opacity: 0.3;
+      }
+
+      /* RTL Specific Overrides */
+      [dir="rtl"] .font-sans {
+         font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      /* --- GLASS POPUP STYLES --- */
+      .glass-popup .leaflet-popup-content-wrapper {
+        background: rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border-radius: 25px !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
+        padding: 0 !important;
+        overflow: hidden;
+      }
+      
+      .glass-popup .leaflet-popup-content {
+        margin: 12px 20px !important;
+        color: #1a1a1a;
+        font-weight: bold;
+        text-align: center;
+      }
+
+      /* Dark mode adjustment for popup content text */
+      .dark .glass-popup .leaflet-popup-content {
+        color: #ffffff;
+      }
+
+      .glass-popup .leaflet-popup-tip {
+        background: rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+      }
+
+      /* Hide close button for cleaner look */
+      .glass-popup .leaflet-popup-close-button {
+        display: none;
+      }
+      
+      /* SNOW EFFECT STYLES */
+      .Snow {
+          display: flex;
+          justify-content: space-between;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          height: 100vh;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          pointer-events: none;
+          z-index: 9999;
+      }
+
+      .Snowflake {
+          display: inline-block;
+          width: 0.1%;
+          color: #FFFAFA;
+          opacity: 0;
+          margin: 0;
+          padding: 0;
+          animation: fall 16s linear infinite;
+          user-select: none;
+      }
+      
+      .frosted-effect::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+          opacity: 0.3;
+          pointer-events: none;
+          z-index: 5;
+          mix-blend-mode: overlay;
+          border-radius: inherit;
+      }
+      
+      .frosted-effect {
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.4) !important;
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react",
+    "framer-motion": "https://esm.sh/framer-motion@11.0.8?external=react,react-dom",
+    "leaflet": "https://esm.sh/leaflet@1.9.4",
+    "react-leaflet": "https://esm.sh/react-leaflet@4.2.1?external=react,react-dom,leaflet",
+    "@react-leaflet/core": "https://esm.sh/@react-leaflet/core@2.1.0?external=react,react-dom,leaflet",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.2.7",
+    "path": "https://esm.sh/path@^0.12.7",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react';
+      import ReactDOM from 'react-dom/client';
+      import App from './App';
+
+      const rootElement = document.getElementById('root');
+      if (!rootElement) throw new Error('Failed to find the root element');
+
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        React.createElement(React.StrictMode, null, 
+          React.createElement(App, null)
+        )
+      );
+    </script>
+  </body>
+</html>
