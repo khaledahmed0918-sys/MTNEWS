@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { GlassCard } from '../ui/GlassCard';
@@ -8,7 +8,7 @@ import { AsyncButton } from '../ui/AsyncButton';
 import { ImageUploadControl } from '../ui/SharedInputs';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
 import { db, ref, push, get, set, onValue } from '../../firebase';
-import { ImageData } from '../../types';
+import { ImageData, ImageRequest } from '../../types';
 import { logAction } from '../../utils/logging';
 import { useImages } from '../../contexts/ImageContext';
 
@@ -70,6 +70,175 @@ export const DownloadableMediaModal: React.FC<{ mediaUrl: string; mediaType: 'im
             </div>
             <motion.button onClick={onClose} className="absolute top-6 right-6 bg-white/10 backdrop-blur-md text-white rounded-full w-10 h-10 flex items-center justify-center border border-white/20 hover:bg-red-500 hover:border-red-500 transition-colors z-[10000]"><Icons.X /></motion.button>
         </motion.div>
+    );
+};
+
+// --- USER REQUEST MODAL ---
+export const UserImageRequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const { t } = useI18n();
+    const { submitImageRequest } = useImages();
+    const [tags, setTags] = useState('');
+    const [pendingUrls, setPendingUrls] = useState<string[]>([]);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+    const handleSubmit = async (signal: AbortSignal) => {
+        if (!tags.trim()) { alert(t('fillAllFields')); return; }
+        if (pendingUrls.length === 0 && pendingFiles.length === 0) { alert(t('fillAllFields')); return; }
+
+        await submitImageRequest(pendingFiles, pendingUrls, tags, signal);
+        
+        if(!signal.aborted) {
+            logAction('system', 'Image Request Sent', `Files: ${pendingFiles.length}, URLs: ${pendingUrls.length}`);
+            setTags('');
+            setPendingUrls([]);
+            setPendingFiles([]);
+            onClose();
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] flex items-center justify-center p-4">
+            <GlassCard className="w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden" noRound>
+                <div className="flex justify-between items-center mb-4 shrink-0">
+                    <h3 className="text-xl font-bold text-white">Request Image</h3>
+                    <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                    <div className="flex flex-col gap-4">
+                        <input value={tags} onChange={e => setTags(e.target.value)} placeholder={t('imageTags')} className="p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-orange-500 outline-none transition-colors" />
+                        <ImageUploadControl 
+                            onUrlsChange={setPendingUrls} 
+                            onFilesChange={setPendingFiles}
+                        />
+                        <AsyncButton 
+                            onClick={handleSubmit} 
+                            disabled={pendingUrls.length === 0 && pendingFiles.length === 0} 
+                            label="Send Image" 
+                            variant="success" 
+                            className="w-full mt-2" 
+                            progressSpeed="fast" 
+                        />
+                    </div>
+                </div>
+            </GlassCard>
+        </div>
+    );
+};
+
+// --- ADMIN PENDING REQUESTS MODAL ---
+export const AdminPendingRequestsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const { t } = useI18n();
+    const { requests, deleteImageRequest, uploadImageUrl, refreshRequests, updateImageTags } = useImages();
+    const [selectedReq, setSelectedReq] = useState<ImageRequest | null>(null);
+    const [editTags, setEditTags] = useState('');
+
+    useEffect(() => {
+        refreshRequests();
+    }, []);
+
+    const openRequest = (req: ImageRequest) => {
+        setSelectedReq(req);
+        setEditTags(req.tags.join(', '));
+    };
+
+    const handleAccept = async (signal: AbortSignal) => {
+        if (!selectedReq) return;
+        
+        try {
+            await uploadImageUrl(selectedReq.url, editTags, signal);
+            if(signal.aborted) return;
+            
+            // 2. Delete Request
+            await deleteImageRequest(selectedReq.id, signal);
+            
+            logAction('admin', 'Accepted Image Request', `ID: ${selectedReq.id}`);
+            setSelectedReq(null);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to accept request");
+        }
+    };
+
+    const handleDeny = async (signal: AbortSignal) => {
+        if (!selectedReq) return;
+        await deleteImageRequest(selectedReq.id, signal);
+        logAction('admin', 'Denied Image Request', `ID: ${selectedReq.id}`);
+        setSelectedReq(null);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] flex items-center justify-center p-4">
+            <GlassCard className="w-full max-w-4xl flex flex-col max-h-[85vh] overflow-hidden" noRound>
+                <div className="flex justify-between items-center mb-4 shrink-0">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        {selectedReq && <button onClick={() => setSelectedReq(null)}><Icons.ArrowLeft className="w-6 h-6" /></button>}
+                        Pending Requests ({requests.length})
+                    </h3>
+                    <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                    {!selectedReq ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            {requests.length === 0 && <div className="col-span-full text-center py-10 text-gray-500">No pending requests.</div>}
+                            {requests.map(req => (
+                                <div key={req.id} onClick={() => openRequest(req)} className="p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors flex flex-col gap-2 group">
+                                    <div className="aspect-video w-full bg-black/30 rounded-lg overflow-hidden relative">
+                                        <img src={req.url} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/50 group-hover:bg-transparent transition-colors"></div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {req.tags.slice(0,3).map((tag,i) => <span key={i} className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-300">{tag}</span>)}
+                                        {req.tags.length > 3 && <span className="text-[10px] text-gray-500">+{req.tags.length-3}</span>}
+                                    </div>
+                                    <div className="flex justify-between items-center mt-auto text-xs text-gray-500">
+                                        <span>{req.type}</span>
+                                        <span>{new Date(req.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col md:flex-row gap-6 h-full">
+                            <div className="flex-1 min-h-[300px] bg-black/30 rounded-xl overflow-hidden flex items-center justify-center border border-white/10">
+                                <img src={selectedReq.url} className="max-w-full max-h-full object-contain" />
+                            </div>
+                            <div className="w-full md:w-80 flex flex-col gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-gray-400 text-xs font-bold uppercase">Tags</label>
+                                    <textarea 
+                                        value={editTags} 
+                                        onChange={e => setEditTags(e.target.value)} 
+                                        className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white min-h-[100px] outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-gray-400">
+                                    <div className="flex justify-between mb-1"><span>Type:</span> <span className="text-white">{selectedReq.type}</span></div>
+                                    <div className="flex justify-between"><span>Date:</span> <span className="text-white">{new Date(selectedReq.createdAt).toLocaleString()}</span></div>
+                                </div>
+                                <div className="mt-auto flex flex-col gap-3">
+                                    <AsyncButton 
+                                        onClick={handleAccept} 
+                                        label="Accept" 
+                                        variant="success" 
+                                        className="w-full py-3"
+                                        progressSpeed="fast"
+                                    />
+                                    <AsyncButton 
+                                        onClick={handleDeny} 
+                                        label="Deny" 
+                                        variant="danger" 
+                                        className="w-full py-3"
+                                        progressSpeed="fast"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </GlassCard>
+        </div>
     );
 };
 

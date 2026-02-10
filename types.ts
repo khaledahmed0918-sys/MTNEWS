@@ -52,6 +52,16 @@ export interface ImageCategory {
     updatedAt?: string;
 }
 
+export interface ImageRequest {
+    id: string;
+    type: 'file' | 'url';
+    url: string;
+    path: string; // from backend
+    tags: string[];
+    status: 'pending' | 'accepted' | 'denied';
+    createdAt: string;
+}
+
 export interface LinkData {
   id: string;
   platform: 'Twitter' | 'Discord' | 'YouTube' | 'TikTok' | 'Instagram';

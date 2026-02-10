@@ -1,14 +1,14 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, imagesData } from '../../constants';
+import { Icons, imagesData, appConfig } from '../../constants';
 import { ImageData, ImageCategory } from '../../types';
 import { useI18n } from '../../contexts/I18nContext';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
 import { useImages } from '../../contexts/ImageContext';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { LazyImageCard } from './LazyImageCard';
-import { DownloadableMediaModal, ImageManagementModal } from '../../components/modals/MediaModals';
+import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, AdminPendingRequestsModal } from '../../components/modals/MediaModals';
 import { CategoryAdminModal, CategoryCard } from './ImageCategoryComponents';
 import { ConfirmDeleteModal } from '../../components/modals/ConfirmationModals';
 
@@ -26,7 +26,7 @@ const NoResults: React.FC = () => {
 
 export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
-    const { dynamicImages, categories, loading, deleteImage } = useImages(); 
+    const { dynamicImages, categories, requests, loading, deleteImage } = useImages(); 
     const [viewMode, setViewMode] = useState<'all' | 'categories'>('all');
     const [activeCategory, setActiveCategory] = useState<ImageCategory | null>(null);
     const [search, setSearch] = useState('');
@@ -36,6 +36,8 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [retrySession, setRetrySession] = useState(0);
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [showCategoryTool, setShowCategoryTool] = useState(false);
+    const [showRequestModal, setShowRequestModal] = useState(false);
+    const [showPendingModal, setShowPendingModal] = useState(false);
     const [deleteConfirmImg, setDeleteConfirmImg] = useState<ImageData | null>(null);
 
     const allImages = useMemo(() => {
@@ -133,9 +135,33 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                {t('doesntContain')}
                            </button>
                         </div>
+                        
+                        {appConfig.addImages && (
+                             <motion.button
+                                onClick={() => setShowRequestModal(true)}
+                                className="px-4 py-3 bg-green-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg border border-white/10"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                <Icons.Plus className="w-5 h-5" />
+                                <span className="hidden md:inline">Request Image</span>
+                            </motion.button>
+                        )}
 
                          {isAdmin && (
                             <div className="flex gap-2">
+                                {appConfig.addImages && (
+                                     <motion.button
+                                        onClick={() => setShowPendingModal(true)}
+                                        className="px-4 py-3 bg-yellow-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-yellow-700 transition-colors shadow-lg border border-white/10 relative"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        <Icons.Clock className="w-5 h-5" />
+                                        <span className="hidden md:inline">Pending Requests</span>
+                                        {requests.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border border-black shadow-sm">{requests.length}</span>}
+                                    </motion.button>
+                                )}
                                 <motion.button
                                     onClick={() => setShowCategoryTool(true)}
                                     className="px-4 py-3 bg-purple-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg border border-white/10"
@@ -258,6 +284,8 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
              <AnimatePresence>{modalData && <DownloadableMediaModal mediaUrl={modalData.url} mediaType="image" title={modalData.title} onClose={() => setModalData(null)} />}</AnimatePresence>
              <AnimatePresence>{showAdminModal && isAdmin && <ImageManagementModal onClose={() => setShowAdminModal(false)} />}</AnimatePresence>
              <AnimatePresence>{showCategoryTool && isAdmin && <CategoryAdminModal onClose={() => setShowCategoryTool(false)} allImages={allImages} />}</AnimatePresence>
+             <AnimatePresence>{showRequestModal && <UserImageRequestModal onClose={() => setShowRequestModal(false)} />}</AnimatePresence>
+             <AnimatePresence>{showPendingModal && isAdmin && <AdminPendingRequestsModal onClose={() => setShowPendingModal(false)} />}</AnimatePresence>
              <AnimatePresence>{deleteConfirmImg && (<ConfirmDeleteModal isOpen={true} onClose={() => setDeleteConfirmImg(null)} onConfirm={confirmDelete} title={t('deleteImage')} message={`${t('deleteConfirm')} (${deleteConfirmImg.tags.join(', ')})`} />)}</AnimatePresence>
         </div>
     );

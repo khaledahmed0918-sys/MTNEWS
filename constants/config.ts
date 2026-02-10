@@ -11,6 +11,7 @@ export const ADMIN_CREDENTIALS = {
 // --- APP CONFIGURATION ---
 export const appConfig = {
     donateLink: 'https://dkn.to/mtnews',
+    addImages: true, // Enable/Disable User Image Requests
 };
 
 // --- NAVIGATION CONFIG ---

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -13,9 +12,10 @@ interface AsyncButtonProps {
     className?: string;
     disabled?: boolean;
     progressSpeed?: 'fast' | 'normal' | 'slow';
+    children?: React.ReactNode;
 }
 
-export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, label, loadingLabel, variant = 'primary', className = '', disabled = false, progressSpeed = 'normal' }) => {
+export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, label, loadingLabel, variant = 'primary', className = '', disabled = false, progressSpeed = 'normal', children }) => {
     const { t } = useI18n();
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'cancelling'>('idle');
     const [progress, setProgress] = useState(0);
@@ -100,7 +100,7 @@ export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, lab
                         <span>{t('success')}</span>
                     </motion.div>
                 ) : (
-                    label
+                    children || label
                 )}
             </div>
             
