@@ -10,18 +10,39 @@ import { logAction } from '../../utils/logging';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { AddStreamerModal, StreamerDetailModal, StreamerCard } from './LiveComponents';
 
+// Utility to handle retries for fetch
+const fetchWithRetry = async (url: string, retries = 3, backoff = 500): Promise<Response> => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const res = await fetch(url);
+            if (res.ok) return res;
+        } catch (e) {
+            // Ignore error and retry
+        }
+        await new Promise(r => setTimeout(r, backoff * (i + 1)));
+    }
+    throw new Error('Fetch failed after retries');
+};
+
 const fetchKickChannel = async (query: string): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null> => {
     let username = query.trim();
+    // Clean username from URL if pasted
     const urlMatch = username.match(/kick\.com\/([^\/]+)/);
     if (urlMatch) username = urlMatch[1];
+    
+    // Clean query parameters or slashes
+    username = username.split('?')[0].replace(/\//g, '');
+
     try {
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}`)}`);
-        if (!response.ok) return null;
+        const response = await fetchWithRetry(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}`)}`);
+        
         const json = await response.json();
         const root = json.data ? json.data : json; 
         const user = root.user;
         const livestream = root.livestream;
+        
         if (!user) return null;
+        
         const kickData: KickChannelInfo = {
             id: root.id, slug: root.slug, user_id: user.id, username: user.username, profile_pic: user.profile_pic,
             banner: root.banner_image?.url || root.banner_image || user.banner_image || user.banner || '', 
@@ -33,7 +54,28 @@ const fetchKickChannel = async (query: string): Promise<{ kickData: KickChannelI
             category_name: livestream?.categories?.[0]?.name || '', category_icon: livestream?.categories?.[0]?.image_url || '', thumbnail: livestream?.thumbnail?.url || ''
         };
         return { kickData, streamData };
-    } catch (e) { console.error("Kick fetch failed", e); return null; }
+    } catch (e) { 
+        return null; 
+    }
+};
+
+const searchKickChannels = async (query: string): Promise<{username: string, pic: string}[]> => {
+    if(!query || query.length < 3) return [];
+    try {
+        const response = await fetchWithRetry(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/search/channels?q=${query}`)}`);
+        const json = await response.json();
+        const channels = json.channels || json; // Handle potentially different response structures
+        
+        if (Array.isArray(channels)) {
+            return channels.map((c: any) => ({
+                username: c.slug || c.username,
+                pic: c.user?.profile_pic || c.profile_pic || 'https://via.placeholder.com/150'
+            }));
+        }
+        return [];
+    } catch (e) {
+        return [];
+    }
 };
 
 const useStreamers = () => {
@@ -128,7 +170,17 @@ export const LivePage: React.FC<{ snowEnabled: boolean }> = ({ snowEnabled }) =>
             {filteredStreamers.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-60"><Icons.Tv className="w-20 h-20 mb-4 text-gray-500" /><h3 className="text-xl font-bold text-white">{t('noStreamers')}</h3></div>
             )}
-            <AnimatePresence>{showAddModal && <AddStreamerModal onClose={() => setShowAddModal(false)} onAdd={handleAdd} existingStreamers={streamers} fetchKickChannel={fetchKickChannel} />}</AnimatePresence>
+            <AnimatePresence>
+                {showAddModal && (
+                    <AddStreamerModal 
+                        onClose={() => setShowAddModal(false)} 
+                        onAdd={handleAdd} 
+                        existingStreamers={streamers} 
+                        fetchKickChannel={fetchKickChannel}
+                        searchKickChannels={searchKickChannels} 
+                    />
+                )}
+            </AnimatePresence>
             <AnimatePresence>{selectedStreamer && (<StreamerDetailModal streamer={selectedStreamer} onClose={() => setSelectedStreamer(null)} onDelete={() => handleDelete(selectedStreamer.id)} snowEnabled={snowEnabled} />)}</AnimatePresence>
             <AnimatePresence>{deletedStreamer && (<motion.div initial={{ opacity: 0, y: 50, x: 50 }} animate={{ opacity: 1, y: 0, x: 0 }} exit={{ opacity: 0, y: 50, x: 50 }} className="fixed bottom-4 right-4 z-[10000]"><div className="bg-neutral-900 border border-white/10 rounded-2xl p-1 shadow-2xl flex items-center gap-4 pl-4 pr-1.5 py-1.5 overflow-hidden relative min-w-[300px]"><motion.div className="absolute bottom-0 left-0 h-0.5 bg-orange-500" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 5, ease: "linear" }} /><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden"><img src={deletedStreamer.data.kickData?.profile_pic || ''} className="w-full h-full object-cover" /></div><div className="flex flex-col"><span className="font-bold text-sm text-white">{t('streamerDeleted')}</span><span className="text-[10px] text-gray-400">{deletedStreamer.data.kickUsername}</span></div></div><div className="ml-auto relative z-10"><button onClick={handleRestore} className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors">{t('restore')}</button></div></div></motion.div>)}</AnimatePresence>
         </div>

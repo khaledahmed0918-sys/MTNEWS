@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
@@ -8,7 +8,13 @@ import { GlassCard } from '../../components/ui/GlassCard';
 import { useLocalStorage } from '../../hooks';
 
 // --- ADD STREAMER MODAL ---
-export const AddStreamerModal: React.FC<{ onClose: () => void, onAdd: (s: Streamer) => void, existingStreamers: Streamer[], fetchKickChannel: (q:string) => Promise<any> }> = ({ onClose, onAdd, existingStreamers, fetchKickChannel }) => {
+export const AddStreamerModal: React.FC<{ 
+    onClose: () => void, 
+    onAdd: (s: Streamer) => void, 
+    existingStreamers: Streamer[], 
+    fetchKickChannel: (q:string) => Promise<any>,
+    searchKickChannels: (q:string) => Promise<{username: string, pic: string}[]> 
+}> = ({ onClose, onAdd, existingStreamers, fetchKickChannel, searchKickChannels }) => {
     const { t, dir } = useI18n();
     const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(false);
@@ -20,29 +26,60 @@ export const AddStreamerModal: React.FC<{ onClose: () => void, onAdd: (s: Stream
     const [notes, setNotes] = useState('');
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [skipResetConfirm, setSkipResetConfirm] = useLocalStorage('mtnews-skip-reset-confirm', false);
+    
+    // Search Autocomplete State
+    const [searchResults, setSearchResults] = useState<{username: string, pic: string}[]>([]);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const searchTimeout = useRef<any>(null);
 
-    const handleSearch = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!query.trim()) return;
+    const performSearch = async (term: string) => {
+        if (!term || term.length < 3) return;
         setLoading(true);
-        setError('');
         setStatus('verifying');
-        setFoundData(null);
-
-        let username = query.trim();
-        const urlMatch = username.match(/kick\.com\/([^\/]+)/);
-        if (urlMatch) username = urlMatch[1];
-
-        if (existingStreamers.some(s => s.kickUsername.toLowerCase() === username.toLowerCase())) {
-            setLoading(false);
-            setStatus('failed');
-            setError(t('duplicateStreamer'));
-            return;
-        }
-
-        const result = await fetchKickChannel(query);
+        setError('');
+        
+        // Use the new search capability
+        const results = await searchKickChannels(term);
+        
         setLoading(false);
+        
+        if (results && results.length > 0) {
+            setSearchResults(results);
+            setShowDropdown(true);
+        } else {
+            setSearchResults([]);
+            setShowDropdown(false);
+            // Don't show error immediately while typing unless it's a direct fetch attempt
+        }
+    };
+
+    useEffect(() => {
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        if (query.length > 2 && !foundData) {
+            searchTimeout.current = setTimeout(() => {
+                performSearch(query);
+            }, 600);
+        } else {
+            setShowDropdown(false);
+        }
+    }, [query]);
+
+    const handleSelectResult = async (username: string) => {
+        setShowDropdown(false);
+        setQuery(username);
+        setLoading(true);
+        setStatus('verifying');
+        
+        // Final fetch to lock in data
+        const result = await fetchKickChannel(username);
+        setLoading(false);
+        
         if (result) {
+            if (existingStreamers.some(s => s.kickUsername.toLowerCase() === result.kickData.username.toLowerCase())) {
+                setStatus('failed');
+                setError(t('duplicateStreamer'));
+                return;
+            }
             setFoundData(result);
             setStatus('verified');
         } else {
@@ -68,6 +105,8 @@ export const AddStreamerModal: React.FC<{ onClose: () => void, onAdd: (s: Stream
         setNotes('');
         setShowResetConfirm(false);
         setError('');
+        setShowDropdown(false);
+        setSearchResults([]);
     };
 
     const handleFinalAdd = async () => {
@@ -92,6 +131,9 @@ export const AddStreamerModal: React.FC<{ onClose: () => void, onAdd: (s: Stream
         onClose();
     };
 
+    // Calculate icon position based on dir
+    const iconPosClass = dir === 'rtl' ? 'left-4' : 'right-4';
+
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[10000] flex items-center justify-center p-4">
             <GlassCard className="w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" noRound>
@@ -100,18 +142,78 @@ export const AddStreamerModal: React.FC<{ onClose: () => void, onAdd: (s: Stream
                     <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
-                    <form onSubmit={handleSearch} className="relative mb-6">
+                    <div className="relative mb-6 group">
                         <div className="relative">
                             <Icons.Search className={`absolute top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5 ${dir==='rtl' ? 'right-4' : 'left-4'}`} />
-                            <input value={query} onChange={e => { setQuery(e.target.value); setStatus('idle'); setError(''); }} placeholder={t('kickUrlOrUser')} className={`w-full p-4 rounded-xl bg-white/5 border transition-all outline-none text-white ${dir==='rtl' ? 'pr-12' : 'pl-12'} ${status === 'verified' ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : status === 'failed' ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-orange-500'}`} />
+                            <input 
+                                value={query} 
+                                onChange={e => { 
+                                    setQuery(e.target.value); 
+                                    if(foundData) setFoundData(null); 
+                                    setStatus('idle'); 
+                                    setError(''); 
+                                }} 
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleSelectResult(query);
+                                    }
+                                }}
+                                placeholder={t('kickUrlOrUser')} 
+                                className={`w-full p-4 rounded-xl bg-white/5 border transition-all outline-none text-white ${dir==='rtl' ? 'pr-12' : 'pl-12'} ${status === 'verified' ? 'border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : status === 'failed' ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-orange-500'}`} 
+                            />
+                             
+                             {/* Loading/Status Icons - Perfectly Centered Vertically */}
                              <AnimatePresence>
-                                {loading && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`absolute top-1/2 -translate-y-1/2 ${dir==='rtl' ? 'left-4' : 'right-4'}`}><Icons.Loader2 className="w-5 h-5 animate-spin text-orange-500" /></motion.div>)}
-                                {!loading && status === 'verified' && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`absolute top-1/2 -translate-y-1/2 ${dir==='rtl' ? 'left-4' : 'right-4'}`}><div className="bg-green-500 rounded-full p-1"><Icons.Check className="w-4 h-4 text-black" /></div></motion.div>)}
-                                {!loading && status === 'failed' && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`absolute top-1/2 -translate-y-1/2 ${dir==='rtl' ? 'left-4' : 'right-4'}`}><div className="bg-red-500 rounded-full p-1"><Icons.X className="w-4 h-4 text-white" /></div></motion.div>)}
+                                {loading && (
+                                    <motion.div 
+                                        initial={{ opacity: 0 }} 
+                                        animate={{ opacity: 1 }} 
+                                        exit={{ opacity: 0 }} 
+                                        className={`absolute top-1/2 -translate-y-1/2 ${iconPosClass}`}
+                                    >
+                                        <Icons.Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                                    </motion.div>
+                                )}
+                                
+                                {!loading && status === 'verified' && (
+                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`absolute top-1/2 -translate-y-1/2 ${iconPosClass}`}>
+                                        <div className="bg-green-500 rounded-full p-1"><Icons.Check className="w-3 h-3 text-black" /></div>
+                                    </motion.div>
+                                )}
+                                {!loading && status === 'failed' && (
+                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className={`absolute top-1/2 -translate-y-1/2 ${iconPosClass}`}>
+                                        <div className="bg-red-500 rounded-full p-1"><Icons.X className="w-3 h-3 text-white" /></div>
+                                    </motion.div>
+                                )}
                             </AnimatePresence>
                         </div>
+
+                        {/* Search Dropdown */}
+                        <AnimatePresence>
+                            {showDropdown && searchResults.length > 0 && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: -10 }} 
+                                    animate={{ opacity: 1, y: 0 }} 
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-60 overflow-y-auto"
+                                >
+                                    {searchResults.map((res, i) => (
+                                        <button 
+                                            key={i}
+                                            onClick={() => handleSelectResult(res.username)}
+                                            className="w-full p-3 flex items-center gap-3 hover:bg-white/10 transition-colors text-left"
+                                        >
+                                            <img src={res.pic} alt={res.username} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                                            <span className="font-bold text-white">{res.username}</span>
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         {error && <p className="text-red-400 text-sm mt-2 ml-1 font-bold">{error}</p>}
-                    </form>
+                    </div>
+
                     <AnimatePresence>
                         {foundData && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mb-6 overflow-hidden">

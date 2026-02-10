@@ -10,7 +10,7 @@ import { AsyncButton } from '../components/ui/AsyncButton';
 const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 // --- ADMIN DATA MANAGER MODAL ---
-const AdminDataManagerModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+const AdminDataManagerModal: React.FC<{ onClose: () => void; onRefresh: () => void }> = ({ onClose, onRefresh }) => {
     const { t } = useI18n();
 
     const handleReset = async (signal: AbortSignal, type: string) => {
@@ -21,6 +21,7 @@ const AdminDataManagerModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
              body: JSON.stringify({ type }),
              signal
          });
+         onRefresh();
     };
 
     return (
@@ -31,7 +32,6 @@ const AdminDataManagerModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
                     <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="flex flex-col gap-2">
-                    {/* Note: New API only supports resetting logs by type. There is no reset endpoint for images/votes other than individual items or entire categories */}
                     <AsyncButton onClick={(s) => handleReset(s, 'admin')} label="Reset Admin Logs" variant="danger" className="w-full text-left" />
                     <AsyncButton onClick={(s) => handleReset(s, 'vote')} label="Reset Vote Logs" variant="danger" className="w-full text-left" />
                     <AsyncButton onClick={(s) => handleReset(s, 'image')} label="Reset Image Logs" variant="danger" className="w-full text-left" />
@@ -48,20 +48,28 @@ export const LogsPage: React.FC = () => {
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<'all' | 'vote' | 'admin' | 'system' | 'image'>('all');
     const [showDataManager, setShowDataManager] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const fetchLogs = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/logs`, {
+                headers: { "ngrok-skip-browser-warning": "true" }
+            });
+            if (res.ok) setLogs((await res.json()).reverse());
+        } catch (e) {}
+    };
 
     useEffect(() => {
-        const fetchLogs = async () => {
-            try {
-                const res = await fetch(`${API_BASE}/logs`, {
-                    headers: { "ngrok-skip-browser-warning": "true" }
-                });
-                if (res.ok) setLogs((await res.json()).reverse());
-            } catch (e) {}
-        };
         fetchLogs();
         const interval = setInterval(fetchLogs, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [refreshTrigger]);
+
+    const handleManualRefresh = () => {
+        setLogs([]); // Optimistic clear to show update
+        setRefreshTrigger(prev => prev + 1);
+        fetchLogs();
+    };
 
     const filteredLogs = logs.filter(log => {
         if (filter !== 'all' && log.type !== filter) return false;
@@ -134,7 +142,7 @@ export const LogsPage: React.FC = () => {
              </div>
 
              <AnimatePresence>
-                {showDataManager && <AdminDataManagerModal onClose={() => setShowDataManager(false)} />}
+                {showDataManager && <AdminDataManagerModal onClose={() => setShowDataManager(false)} onRefresh={handleManualRefresh} />}
              </AnimatePresence>
         </div>
     );

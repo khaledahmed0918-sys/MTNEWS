@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -110,7 +109,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
         fd.append('name', name);
         fd.append('tags', tagsInput);
         if (imageFile) fd.append('image', imageFile);
-        Object.entries(socials).forEach(([k, v]) => fd.append(k, v));
+        Object.entries(socials).forEach(([k, v]) => fd.append(k, v as string));
 
         const res = await fetch(`${API_BASE}/categories/${groupId}/add`, {
             method: 'POST',
