@@ -21,7 +21,7 @@ export const HomePage: React.FC = () => {
     return (
         <div className="w-full max-w-7xl mx-auto p-4 -mt-10">
             <BorderGlowWrapper className="resize-y overflow-hidden min-h-[300px]" rect>
-                <div className="bg-transparent flex flex-col w-full relative h-full">
+                <div className="bg-transparent flex flex-col w-full relative">
                     <div className="py-3 px-6 flex items-center justify-between border-b border-gray-200 dark:border-white/10 shrink-0 bg-white/5">
                         <h2 className={`text-xl font-bold ${titleColor} tracking-wide`}>{t('mtnewsCardTitle')}</h2>
                         <div className="flex gap-2">
@@ -31,7 +31,7 @@ export const HomePage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="p-8 flex flex-col gap-8 h-full">
+                    <div className="p-8 flex flex-col gap-8">
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-8 w-full">
                             <div className="flex-shrink-0">
                                 <motion.div whileHover={{ scale: 1.05, rotate: 5 }} className="p-1 rounded-full border-2 border-orange-500/30 shadow-[0_0_30px_rgba(249,115,22,0.3)] bg-black">
@@ -63,7 +63,7 @@ export const HomePage: React.FC = () => {
                             <p className={`${subTextColor} text-lg leading-relaxed font-medium text-center md:text-start`}>{t('cardInfoDescription')}</p>
                         </div>
                         
-                        <div className="mt-auto pt-4">
+                        <div className="pt-4">
                             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-600/20 via-orange-900/10 to-red-600/20 border border-orange-500/30 p-6 flex flex-col md:flex-row items-center justify-between gap-6 group">
                                 <div className="absolute inset-0 bg-orange-500/5 group-hover:bg-orange-500/10 transition-colors duration-500"></div>
                                 <div className="relative z-10 flex flex-col items-center md:items-start gap-1">

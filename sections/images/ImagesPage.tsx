@@ -10,6 +10,7 @@ import { GlassCard } from '../../components/ui/GlassCard';
 import { LazyImageCard } from './LazyImageCard';
 import { DownloadableMediaModal, ImageManagementModal } from '../../components/modals/MediaModals';
 import { db, ref, get } from '../../firebase';
+import { ConfirmDeleteModal } from '../../components/modals/ConfirmationModals';
 
 const NoResults: React.FC = () => {
     const { t } = useI18n();
@@ -25,14 +26,14 @@ const NoResults: React.FC = () => {
 
 export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
-    const { requestDelete } = useGlobalActions();
-    const { dynamicImages, loading } = useImages(); 
+    const { dynamicImages, loading, deleteImage } = useImages(); 
     const [search, setSearch] = useState('');
     const [filterMode, setFilterMode] = useState<'contains' | 'excludes'>('contains');
     const [modalData, setModalData] = useState<{url: string, title: string} | null>(null);
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
     const [retrySession, setRetrySession] = useState(0);
     const [showAdminModal, setShowAdminModal] = useState(false);
+    const [deleteConfirmImg, setDeleteConfirmImg] = useState<ImageData | null>(null);
 
     const allImages = useMemo(() => {
         return [...imagesData, ...dynamicImages];
@@ -71,22 +72,21 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         setFailedImages(new Set()); 
     };
 
-    const handleDeleteFromOverlay = (e: React.MouseEvent, img: ImageData) => {
+    const handleDeleteClick = (e: React.MouseEvent, img: ImageData) => {
         e.stopPropagation();
-        if (!img.id.startsWith('-')) {
+        // Check if image is from constants (built-in)
+        const isBuiltIn = imagesData.some(i => i.id === img.id);
+        if (isBuiltIn) {
             alert("Cannot delete built-in images.");
             return;
         }
+        setDeleteConfirmImg(img);
+    };
 
-        requestDelete(
-            t('deleteConfirm'),
-            `Image: ${img.tags.join(', ')}`,
-            [`images/${img.id}`],
-            async () => {
-                const imgSnap = await get(ref(db, `images/${img.id}`));
-                return [{ path: `images/${img.id}`, data: imgSnap.val() }];
-            }
-        );
+    const confirmDelete = async () => {
+        if (!deleteConfirmImg) return;
+        await deleteImage(deleteConfirmImg.id);
+        setDeleteConfirmImg(null);
     };
 
     return (
@@ -181,7 +181,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                 onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
                                 onErrorChange={handleImageError}
                                 retryKey={retrySession}
-                                onDelete={isAdmin && img.id.startsWith('-') ? (e) => handleDeleteFromOverlay(e, img) : undefined}
+                                onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
                             />
                         ))}
                     </motion.div>
@@ -196,6 +196,18 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
              <AnimatePresence>
                 {showAdminModal && isAdmin && <ImageManagementModal onClose={() => setShowAdminModal(false)} />}
+             </AnimatePresence>
+
+             <AnimatePresence>
+                {deleteConfirmImg && (
+                    <ConfirmDeleteModal 
+                        isOpen={true} 
+                        onClose={() => setDeleteConfirmImg(null)} 
+                        onConfirm={confirmDelete} 
+                        title={t('deleteImage')} 
+                        message={`${t('deleteConfirm')} (${deleteConfirmImg.tags.join(', ')})`} 
+                    />
+                )}
              </AnimatePresence>
         </div>
     );

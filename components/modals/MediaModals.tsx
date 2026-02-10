@@ -10,6 +10,7 @@ import { useGlobalActions } from '../../contexts/GlobalActionsContext';
 import { db, ref, push, get, set, onValue } from '../../firebase';
 import { ImageData } from '../../types';
 import { logAction } from '../../utils/logging';
+import { useImages } from '../../contexts/ImageContext';
 
 // --- DOWNLOAD MODAL ---
 export const DownloadableMediaModal: React.FC<{ mediaUrl: string; mediaType: 'image' | 'video'; title?: string; onClose: () => void }> = ({ mediaUrl, mediaType, title, onClose }) => {
@@ -75,67 +76,73 @@ export const DownloadableMediaModal: React.FC<{ mediaUrl: string; mediaType: 'im
 // --- IMAGE MANAGEMENT MODAL ---
 export const ImageManagementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { t } = useI18n();
-    const { requestDelete } = useGlobalActions();
+    const { dynamicImages, uploadImageFile, uploadImageUrl, updateImageTags, deleteImage, refreshImages } = useImages();
     const [view, setView] = useState<'add' | 'list'>('add');
-    const [images, setImages] = useState<ImageData[]>([]);
     const [pendingUrls, setPendingUrls] = useState<string[]>([]);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const [tags, setTags] = useState('');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [editImageId, setEditImageId] = useState<string | null>(null);
-    const [editUrl, setEditUrl] = useState('');
     const [editTags, setEditTags] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        if (view === 'list') {
-             const imagesRef = ref(db, 'images');
-             onValue(imagesRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    setImages(Object.entries(data).map(([k, v]: [string, any]) => ({
-                        id: k,
-                        url: v.url,
-                        tags: v.tags || []
-                    })));
-                } else {
-                    setImages([]);
-                }
-             });
-        }
-    }, [view]);
-
     const processAdd = async () => {
-        const tagsArray = tags.split(/[,،]/).map(t => t.trim()).filter(Boolean);
-        const chunkSize = 5; 
-        for (let i = 0; i < pendingUrls.length; i += chunkSize) {
-            const chunk = pendingUrls.slice(i, i + chunkSize);
-            await Promise.all(chunk.map(url => 
-                push(ref(db, 'images'), { url, tags: tagsArray })
-            ));
+        if (!tags.trim()) { alert(t('fillAllFields')); return; }
+
+        if (pendingFiles.length > 0) {
+            // Upload files
+            for (const file of pendingFiles) {
+                await uploadImageFile(file, tags);
+            }
+        } else if (pendingUrls.length > 0) {
+            // Upload URLs
+            for (const url of pendingUrls) {
+                await uploadImageUrl(url, tags);
+            }
         }
-        logAction('image', 'Batch Added Images', `Count: ${pendingUrls.length}`);
+
+        logAction('image', 'Added Images', `Files: ${pendingFiles.length}, URLs: ${pendingUrls.length}`);
         setPendingUrls([]);
+        setPendingFiles([]);
         setTags('');
     };
 
-    const handleDeleteSelected = () => {
+    const handleDeleteSelected = async () => {
         if(selectedIds.length === 0) return;
-        requestDelete(t('deleteConfirm'), `${t('deleteSelected')} (${selectedIds.length})`, selectedIds.map(id => `images/${id}`), async () => {
-            const backups = [];
-            for(const id of selectedIds) {
-                const snap = await get(ref(db, `images/${id}`));
-                backups.push({ path: `images/${id}`, data: snap.val() });
-            }
-            return backups;
-        });
+        if(!confirm(t('deleteConfirm'))) return;
+
+        for(const id of selectedIds) {
+            await deleteImage(id);
+        }
         setSelectedIds([]);
+        logAction('image', 'Deleted Images', `Count: ${selectedIds.length}`);
     };
-    const handleDeleteSingle = (img: ImageData) => requestDelete(t('deleteConfirm'), `ID: ${img.id}`, [`images/${img.id}`]);
-    const startEdit = (img: ImageData) => { setEditImageId(img.id); setEditUrl(img.url); setEditTags(img.tags.join(', ')); };
-    const saveEdit = async () => { if (!editImageId) return; const tagsArray = editTags.split(/[,،]/).map(t => t.trim()).filter(Boolean); await set(ref(db, `images/${editImageId}`), { url: editUrl, tags: tagsArray }); logAction('image', 'Edited Image', `ID: ${editImageId}`); setEditImageId(null); };
+
+    const handleDeleteSingle = async (img: ImageData) => {
+        if(!confirm(t('deleteConfirm'))) return;
+        await deleteImage(img.id);
+        logAction('image', 'Deleted Image', `ID: ${img.id}`);
+    };
+
+    const startEdit = (img: ImageData) => { 
+        setEditImageId(img.id); 
+        setEditTags(img.tags.join(', ')); 
+    };
+
+    const saveEdit = async () => { 
+        if (!editImageId) return; 
+        await updateImageTags(editImageId, editTags);
+        logAction('image', 'Edited Image Tags', `ID: ${editImageId}`); 
+        setEditImageId(null); 
+    };
+
     const toggleSelection = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
     const selectAll = () => { if(selectedIds.length === filteredListImages.length) setSelectedIds([]); else setSelectedIds(filteredListImages.map(i => i.id)); };
-    const filteredListImages = images.filter(img => { if (!searchQuery) return true; const q = searchQuery.toLowerCase(); return img.tags.some(t => t.toLowerCase().includes(q)) || img.url.toLowerCase().includes(q); });
+    const filteredListImages = dynamicImages.filter(img => { if (!searchQuery) return true; const q = searchQuery.toLowerCase(); return img.tags.some(t => t.toLowerCase().includes(q)) || img.url.toLowerCase().includes(q); });
+
+    const handleFilesChange = (files: File[]) => {
+        setPendingFiles(files);
+    };
 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] flex items-center justify-center p-4">
@@ -152,17 +159,27 @@ export const ImageManagementModal: React.FC<{ onClose: () => void }> = ({ onClos
                     {view === 'add' ? (
                         <div className="flex flex-col gap-4">
                             <input value={tags} onChange={e => setTags(e.target.value)} placeholder={t('imageTags')} className="p-3 rounded-xl bg-white/5 border border-white/10 text-white" />
-                            <ImageUploadControl onUrlsChange={setPendingUrls} />
-                            <AsyncButton onClick={processAdd} disabled={pendingUrls.length === 0} label={t('add')} variant="success" className="w-full" progressSpeed="fast" />
+                            <ImageUploadControl 
+                                onUrlsChange={setPendingUrls} 
+                                onFilesChange={handleFilesChange}
+                            />
+                            <AsyncButton 
+                                onClick={processAdd} 
+                                disabled={pendingUrls.length === 0 && pendingFiles.length === 0} 
+                                label={t('add')} 
+                                variant="success" 
+                                className="w-full" 
+                                progressSpeed="fast" 
+                            />
                         </div>
                     ) : (
                         <div className="flex flex-col gap-4 h-full">
                             <div className="flex gap-2 sticky top-0 bg-black/40 z-10 p-2 backdrop-blur-md rounded-xl">
                                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('searchImagesAdmin')} className="flex-1 p-2 rounded-lg bg-white/5 border border-white/10 text-white" />
                                 <button onClick={selectAll} className="px-3 py-2 bg-blue-500/20 text-blue-500 rounded-lg text-sm font-bold whitespace-nowrap">{selectedIds.length === filteredListImages.length ? t('deselectAll') : t('selectAll')}</button>
-                                {selectedIds.length > 0 && (<button onClick={handleDeleteSelected} className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-bold whitespace-nowrap shadow-lg shadow-red-500/20">{t('deleteSelected')} ({selectedIds.length})</button>)}
+                                {selectedIds.length > 0 && (<AsyncButton onClick={handleDeleteSelected} label={`${t('deleteSelected')} (${selectedIds.length})`} variant="danger" />)}
                             </div>
-                            {editImageId ? (<div className="p-4 bg-white/10 rounded-xl flex flex-col gap-3 border border-orange-500/30"><h4 className="font-bold text-orange-400">{t('editImage')}</h4><input value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder={t('imageUrl')} className="p-2 bg-black/40 rounded-lg text-white" /><input value={editTags} onChange={e => setEditTags(e.target.value)} placeholder={t('imageTags')} className="p-2 bg-black/40 rounded-lg text-white" /><div className="flex gap-2"><button onClick={() => setEditImageId(null)} className="flex-1 py-2 bg-gray-600 rounded-lg text-white font-bold">{t('cancel')}</button><AsyncButton onClick={saveEdit} label={t('update')} variant="success" className="flex-1" /></div></div>) : null}
+                            {editImageId ? (<div className="p-4 bg-white/10 rounded-xl flex flex-col gap-3 border border-orange-500/30"><h4 className="font-bold text-orange-400">{t('editImage')}</h4><input value={editTags} onChange={e => setEditTags(e.target.value)} placeholder={t('imageTags')} className="p-2 bg-black/40 rounded-lg text-white" /><div className="flex gap-2"><button onClick={() => setEditImageId(null)} className="flex-1 py-2 bg-gray-600 rounded-lg text-white font-bold">{t('cancel')}</button><AsyncButton onClick={saveEdit} label={t('update')} variant="success" className="flex-1" /></div></div>) : null}
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                 {filteredListImages.map(img => (
                                     <div key={img.id} onClick={() => toggleSelection(img.id)} className={`relative group aspect-square rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${selectedIds.includes(img.id) ? 'border-orange-500 scale-95' : 'border-transparent bg-black/20 hover:border-white/20'}`}>

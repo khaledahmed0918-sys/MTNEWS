@@ -41,6 +41,7 @@ export interface ImageData {
   id: string;
   url: string;
   tags: string[];
+  apiType?: 'file' | 'url';
 }
 
 export interface LinkData {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -156,9 +157,10 @@ const useImageUpload = () => {
 
 export const ImageUploadControl: React.FC<{
     onUrlsChange: (urls: string[]) => void;
+    onFilesChange?: (files: File[]) => void;
     singleMode?: boolean;
     initialUrl?: string;
-}> = ({ onUrlsChange, singleMode = false, initialUrl = '' }) => {
+}> = ({ onUrlsChange, onFilesChange, singleMode = false, initialUrl = '' }) => {
     const { t } = useI18n();
     const [mode, setMode] = useState<'url' | 'upload'>('url');
     const [urlInput, setUrlInput] = useState(initialUrl);
@@ -169,11 +171,16 @@ export const ImageUploadControl: React.FC<{
         if (mode === 'url') {
             const urls = urlInput.split(/[,،]/).map(s => s.trim()).filter(Boolean);
             onUrlsChange(urls);
+            if (onFilesChange) onFilesChange([]);
         } else {
             const successUrls = files.filter(f => f.status === 'success' && f.url).map(f => f.url!);
             onUrlsChange(successUrls);
+            if (onFilesChange) {
+                const rawFiles = files.map(f => f.file);
+                onFilesChange(rawFiles);
+            }
         }
-    }, [urlInput, files, mode, onUrlsChange]);
+    }, [urlInput, files, mode, onUrlsChange, onFilesChange]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
