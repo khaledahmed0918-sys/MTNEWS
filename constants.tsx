@@ -885,10 +885,12 @@ export const voteCharacters: VoteCharacter[] = [
         rank: 'Leader',
         note: 'Controls the industrial district iron fist.',
         image: 'https://picsum.photos/seed/godfather/400/500',
-        socials: [
-            { platform: 'Twitter', url: '#' },
-            { platform: 'Discord', url: '#' }
-        ]
+        votes: 0,
+        tags: ['Leader'],
+        social: {
+            twitter: '#',
+            discord: '#'
+        }
     }
 ];
 

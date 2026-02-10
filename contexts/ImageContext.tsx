@@ -6,15 +6,15 @@ interface ImageContextType {
     dynamicImages: ImageData[];
     loading: boolean;
     refreshImages: () => void;
-    uploadImageFile: (file: File, tags: string) => Promise<void>;
-    uploadImageUrl: (url: string, tags: string) => Promise<void>;
-    updateImageTags: (id: string, tags: string) => Promise<void>;
-    deleteImage: (id: string) => Promise<void>;
+    uploadImageFile: (file: File, tags: string, signal?: AbortSignal) => Promise<void>;
+    uploadImageUrl: (url: string, tags: string, signal?: AbortSignal) => Promise<void>;
+    updateImageTags: (id: string, tags: string, signal?: AbortSignal) => Promise<void>;
+    deleteImage: (id: string, signal?: AbortSignal) => Promise<void>;
 }
 
 const ImageContext = createContext<ImageContextType | null>(null);
 
-const API_BASE = "http://62.77.156.58:3000";
+const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [dynamicImages, setDynamicImages] = useState<ImageData[]>([]);
@@ -23,25 +23,22 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const fetchImages = useCallback(async () => {
         setLoading(true);
         try {
-            console.log(`[ImageContext] Fetching from: ${API_BASE}/images`);
-            
-            const res = await fetch(`${API_BASE}/images`);
-            console.log(`[ImageContext] Response Status:`, res.status);
+            const res = await fetch(`${API_BASE}/images`, {
+                headers: {
+                    "ngrok-skip-browser-warning": "true"
+                }
+            });
 
-            if (!res.ok) throw new Error(`Failed to load images. Status: ${res.status}`);
+            if (!res.ok) throw new Error(`Failed to load images`);
             
             const data = await res.json();
-            console.log("[ImageContext] Raw API Data:", data);
-
-            // Map API response to ImageData structure with robust URL handling
+            
             const mapped: ImageData[] = data.map((item: any) => {
                 let finalUrl = item.url;
-
-                // Construct full URL for uploaded files
                 if (item.type === 'file' && item.path) {
-                    // Ensure path starts with /
-                    const cleanPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
-                    finalUrl = `${API_BASE}${cleanPath}`;
+                    // Ensure path is handled correctly relative to API_BASE
+                    const cleanPath = item.path.startsWith('uploads/') ? item.path : `uploads/${item.path}`;
+                    finalUrl = `${API_BASE}/${cleanPath}`;
                 }
 
                 return {
@@ -52,10 +49,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 };
             });
             
-            console.log("[ImageContext] Processed Images:", mapped);
             setDynamicImages(mapped);
         } catch (e) {
-            console.error("[ImageContext] Fetch Error:", e);
             setDynamicImages([]);
         } finally {
             setLoading(false);
@@ -70,50 +65,65 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         fetchImages();
     };
 
-    const uploadImageUrl = async (url: string, tags: string) => {
-        console.log("[ImageContext] Uploading URL:", url);
+    const uploadImageUrl = async (url: string, tags: string, signal?: AbortSignal) => {
         const res = await fetch(`${API_BASE}/upload/url`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url, tags })
+            headers: { 
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "true"
+            },
+            body: JSON.stringify({ url, tags }),
+            signal
         });
 
         if (!res.ok) throw new Error("Upload failed");
         await fetchImages();
     };
 
-    const uploadImageFile = async (file: File, tags: string) => {
-        console.log("[ImageContext] Uploading File:", file.name);
+    const uploadImageFile = async (file: File, tags: string, signal?: AbortSignal) => {
         const fd = new FormData();
         fd.append("image", file);
         fd.append("tags", tags);
 
         const res = await fetch(`${API_BASE}/upload/image`, {
             method: "POST",
-            body: fd
+            headers: {
+                "ngrok-skip-browser-warning": "true"
+            },
+            body: fd,
+            signal
         });
 
         if (!res.ok) throw new Error("Upload failed");
         await fetchImages();
     };
 
-    const updateImageTags = async (id: string, tags: string) => {
+    const updateImageTags = async (id: string, tags: string, signal?: AbortSignal) => {
         const res = await fetch(`${API_BASE}/image/${id}/tags`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tags })
+            headers: { 
+                "Content-Type": "application/json",
+                "ngrok-skip-browser-warning": "true"
+            },
+            body: JSON.stringify({ tags }),
+            signal
         });
 
         if (!res.ok) throw new Error("Update failed");
         await fetchImages();
     };
 
-    const deleteImage = async (id: string) => {
+    const deleteImage = async (id: string, signal?: AbortSignal) => {
         const res = await fetch(`${API_BASE}/image/${id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: { "ngrok-skip-browser-warning": "true" },
+            signal
         });
 
-        if (!res.ok) throw new Error("Delete failed");
+        if (!res.ok) {
+            throw new Error(`Delete failed`);
+        }
+        
         await fetchImages();
     };
 

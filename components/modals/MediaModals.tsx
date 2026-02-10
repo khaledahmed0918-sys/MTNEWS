@@ -86,42 +86,54 @@ export const ImageManagementModal: React.FC<{ onClose: () => void }> = ({ onClos
     const [editTags, setEditTags] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const processAdd = async () => {
+    const processAdd = async (signal: AbortSignal) => {
         if (!tags.trim()) { alert(t('fillAllFields')); return; }
 
         if (pendingFiles.length > 0) {
             // Upload files
             for (const file of pendingFiles) {
-                await uploadImageFile(file, tags);
+                if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+                await uploadImageFile(file, tags, signal);
             }
         } else if (pendingUrls.length > 0) {
             // Upload URLs
             for (const url of pendingUrls) {
-                await uploadImageUrl(url, tags);
+                if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+                await uploadImageUrl(url, tags, signal);
             }
         }
 
-        logAction('image', 'Added Images', `Files: ${pendingFiles.length}, URLs: ${pendingUrls.length}`);
-        setPendingUrls([]);
-        setPendingFiles([]);
-        setTags('');
+        if (!signal.aborted) {
+            logAction('image', 'Added Images', `Files: ${pendingFiles.length}, URLs: ${pendingUrls.length}`);
+            setPendingUrls([]);
+            setPendingFiles([]);
+            setTags('');
+        }
     };
 
-    const handleDeleteSelected = async () => {
+    const handleDeleteSelected = async (signal: AbortSignal) => {
         if(selectedIds.length === 0) return;
         if(!confirm(t('deleteConfirm'))) return;
 
         for(const id of selectedIds) {
-            await deleteImage(id);
+            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+            await deleteImage(id, signal);
         }
-        setSelectedIds([]);
-        logAction('image', 'Deleted Images', `Count: ${selectedIds.length}`);
+        
+        if (!signal.aborted) {
+            setSelectedIds([]);
+            logAction('image', 'Deleted Images', `Count: ${selectedIds.length}`);
+        }
     };
 
     const handleDeleteSingle = async (img: ImageData) => {
         if(!confirm(t('deleteConfirm'))) return;
-        await deleteImage(img.id);
-        logAction('image', 'Deleted Image', `ID: ${img.id}`);
+        try {
+            await deleteImage(img.id);
+            logAction('image', 'Deleted Image', `ID: ${img.id}`);
+        } catch (e) {
+            alert(t('failed'));
+        }
     };
 
     const startEdit = (img: ImageData) => { 

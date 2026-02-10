@@ -5,7 +5,7 @@ import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 
 interface AsyncButtonProps {
-    onClick: () => Promise<void>;
+    onClick: (signal: AbortSignal) => Promise<void>;
     onCancel?: () => void;
     label: string;
     loadingLabel?: string;
@@ -29,15 +29,16 @@ export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, lab
     
     const handleClick = async () => {
         if (status === 'loading') {
-            if (onCancel) {
-                setStatus('cancelling');
-                abortController.current?.abort();
-                onCancel();
-                setTimeout(() => {
-                    setStatus('idle');
-                    setProgress(0);
-                }, 500);
+            setStatus('cancelling');
+            if (abortController.current) {
+                abortController.current.abort();
             }
+            if (onCancel) onCancel();
+            
+            setTimeout(() => {
+                setStatus('idle');
+                setProgress(0);
+            }, 500);
             return;
         }
 
@@ -54,17 +55,27 @@ export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, lab
         }, speedMap[progressSpeed]);
 
         try {
-            await onClick();
+            await onClick(abortController.current.signal);
             clearInterval(interval);
+            if (abortController.current.signal.aborted) {
+                setStatus('idle');
+                setProgress(0);
+                return;
+            }
             setProgress(100);
             setStatus('success');
             setTimeout(() => {
                 setStatus('idle');
                 setProgress(0);
             }, 1500);
-        } catch (e) {
+        } catch (e: any) {
             clearInterval(interval);
-            setStatus('idle');
+            // Check for both name and optional signal state
+            if (e.name === 'AbortError' || (abortController.current && abortController.current.signal.aborted)) {
+                setStatus('idle');
+            } else {
+                setStatus('idle');
+            }
             setProgress(0);
         }
     };

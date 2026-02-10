@@ -77,46 +77,38 @@ export interface MapObjectGroup {
   objectIds: string[];
 }
 
+// Updated Vote Types for New API
 export interface VoteGroup {
     id: string;
     name: string;
     image: string;
+    people: VoteCharacter[]; 
 }
 
 export interface VoteCharacter {
     id: string;
     name: string;
-    role: string; 
-    faction: string;
-    rank: string;
-    note: string;
     image: string;
-    socials: SocialLink[];
-    tags?: string[];
-}
-
-export interface VoteHistoryItem {
-    id: 'string';
-    characterId: string;
-    characterName: string;
-    characterImage: string;
-    timestamp: number;
-    groupId: string;
-    groupName: string;
-}
-
-export interface VoteConfig {
-    deadline: string;
-    cooldownTime: string; 
-    onceVote: boolean;
+    tags: string[];
+    votes: number;
+    social: {
+        discord?: string;
+        kick?: string;
+        instagram?: string;
+        youtube?: string;
+        twitter?: string;
+    };
+    // Mapped properties for UI compatibility
+    role?: string;
+    faction?: string;
+    rank?: string;
+    note?: string;
 }
 
 export interface LogEntry {
-    id: string;
-    type: 'vote' | 'admin' | 'system' | 'image';
+    type: string;
     message: string;
-    details?: string;
-    timestamp: number;
+    date: string;
 }
 
 // --- LIVE SECTION TYPES ---
@@ -140,22 +132,18 @@ export interface KickStreamInfo {
     start_time: string;
     title: string;
     category_name: string;
-    category_icon: string; // usually parent_category.slug or similar
+    category_icon: string;
     thumbnail: string;
 }
 
 export interface Streamer {
-    id: string; // unique ID
-    kickUsername: string; // The identifier used for API
-    kickData: KickChannelInfo; // Static data (avatar, banner, etc.)
-    streamData: KickStreamInfo; // Live data (viewers, title, is_live)
-    
-    // User Custom Data
+    id: string;
+    kickUsername: string;
+    kickData: KickChannelInfo;
+    streamData: KickStreamInfo;
     customTitle?: string;
     tags: string[];
     notes?: string;
-    
-    // System Data
     isFavorite: boolean;
     notificationsEnabled: boolean;
     lastUpdated: number;

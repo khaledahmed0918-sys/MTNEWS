@@ -5,25 +5,22 @@ import { Icons } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
 import { GlassCard } from '../components/ui/GlassCard';
 import { LogEntry } from '../types';
-import { db, ref, onValue, get, set } from '../firebase';
-import { setLoggingStatus } from '../utils/logging';
-import { useGlobalActions } from '../contexts/GlobalActionsContext';
+import { AsyncButton } from '../components/ui/AsyncButton';
+
+const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 // --- ADMIN DATA MANAGER MODAL ---
 const AdminDataManagerModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { t } = useI18n();
-    const { requestDelete } = useGlobalActions();
 
-    const handleReset = (path: string, labelKey: string) => {
-         requestDelete(
-            t('confirmReset'),
-            t(labelKey),
-            [path],
-            async () => {
-                const snap = await get(ref(db, path));
-                return [{ path, data: snap.val() }];
-            }
-        );
+    const handleReset = async (signal: AbortSignal, type: string) => {
+         if(!confirm(t('confirmReset'))) return;
+         await fetch(`${API_BASE}/logs/remove`, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json', "ngrok-skip-browser-warning": "true" },
+             body: JSON.stringify({ type }),
+             signal
+         });
     };
 
     return (
@@ -34,11 +31,11 @@ const AdminDataManagerModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
                     <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="flex flex-col gap-2">
-                    <button onClick={() => handleReset('threads', 'resetThreads')} className="p-3 bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-colors text-left text-red-400">{t('resetThreads')}</button>
-                    <button onClick={() => handleReset('images', 'resetImages')} className="p-3 bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-colors text-left text-red-400">{t('resetImages')}</button>
-                    <button onClick={() => handleReset('votes/groups', 'resetCategories')} className="p-3 bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-colors text-left text-red-400">{t('resetCategories')}</button>
-                    <button onClick={() => handleReset('votes/data', 'resetCharacters')} className="p-3 bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-colors text-left text-red-400">{t('resetCharacters')}</button>
-                    <button onClick={() => handleReset('logs', 'resetLogs')} className="p-3 bg-red-500/10 border border-red-500/30 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-colors text-left text-red-400">{t('resetLogs')}</button>
+                    {/* Note: New API only supports resetting logs by type. There is no reset endpoint for images/votes other than individual items or entire categories */}
+                    <AsyncButton onClick={(s) => handleReset(s, 'admin')} label="Reset Admin Logs" variant="danger" className="w-full text-left" />
+                    <AsyncButton onClick={(s) => handleReset(s, 'vote')} label="Reset Vote Logs" variant="danger" className="w-full text-left" />
+                    <AsyncButton onClick={(s) => handleReset(s, 'image')} label="Reset Image Logs" variant="danger" className="w-full text-left" />
+                    <AsyncButton onClick={(s) => handleReset(s, 'system')} label="Reset System Logs" variant="danger" className="w-full text-left" />
                 </div>
             </GlassCard>
         </div>
@@ -46,48 +43,31 @@ const AdminDataManagerModal: React.FC<{ onClose: () => void }> = ({ onClose }) =
 };
 
 export const LogsPage: React.FC = () => {
-    const { t, dir } = useI18n();
+    const { t } = useI18n();
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<'all' | 'vote' | 'admin' | 'system' | 'image'>('all');
     const [showDataManager, setShowDataManager] = useState(false);
-    const [isLoggingEnabled, setIsLoggingEnabled] = useState<boolean | null>(null);
 
     useEffect(() => {
-        const logsRef = ref(db, 'logs');
-        const q = logsRef;
-        const unsubscribeLogs = onValue(q, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const list = Object.entries(data).map(([k, v]: [string, any]) => ({
-                    id: k,
-                    ...v
-                })).sort((a, b) => b.timestamp - a.timestamp);
-                setLogs(list);
-            } else {
-                setLogs([]);
-            }
-        });
-
-        const configRef = ref(db, 'config/loggingEnabled');
-        const unsubscribeConfig = onValue(configRef, (snapshot) => {
-            const status = snapshot.val() !== false;
-            setIsLoggingEnabled(status);
-            setLoggingStatus(status);
-        });
-
-        return () => {
-            unsubscribeLogs();
-            unsubscribeConfig();
+        const fetchLogs = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/logs`, {
+                    headers: { "ngrok-skip-browser-warning": "true" }
+                });
+                if (res.ok) setLogs((await res.json()).reverse());
+            } catch (e) {}
         };
-
+        fetchLogs();
+        const interval = setInterval(fetchLogs, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredLogs = logs.filter(log => {
         if (filter !== 'all' && log.type !== filter) return false;
         if (search) {
             const term = search.toLowerCase();
-            return log.message.toLowerCase().includes(term) || (log.details || '').toLowerCase().includes(term);
+            return log.message.toLowerCase().includes(term);
         }
         return true;
     });
@@ -129,10 +109,10 @@ export const LogsPage: React.FC = () => {
              <div className="flex-1 overflow-y-auto custom-scrollbar bg-black/20 rounded-2xl border border-white/5 p-2">
                  {filteredLogs.length > 0 ? (
                      <div className="flex flex-col gap-1">
-                         {filteredLogs.map(log => (
-                             <div key={log.id} className="grid grid-cols-12 gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors items-center text-sm border-b border-white/5 last:border-0">
+                         {filteredLogs.map((log, idx) => (
+                             <div key={idx} className="grid grid-cols-12 gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors items-center text-sm border-b border-white/5 last:border-0">
                                  <div className="col-span-3 md:col-span-2 text-gray-400 font-mono text-xs">
-                                     {new Date(log.timestamp).toLocaleString()}
+                                     {log.date}
                                  </div>
                                  <div className="col-span-2 md:col-span-1">
                                      <span className={`px-2 py-1 rounded text-xs font-bold border uppercase ${getTypeColor(log.type)}`}>
@@ -141,7 +121,6 @@ export const LogsPage: React.FC = () => {
                                  </div>
                                  <div className="col-span-7 md:col-span-9 flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
                                      <span className="font-bold text-white">{log.message}</span>
-                                     {log.details && <span className="text-gray-500 truncate">{log.details}</span>}
                                  </div>
                              </div>
                          ))}
