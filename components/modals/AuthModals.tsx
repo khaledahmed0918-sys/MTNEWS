@@ -15,13 +15,20 @@ export const AdminAuthModal: React.FC<{ onClose: () => void; onLogin: () => void
     const [shake, setShake] = useState({ username: false, password: false, auth: false, button: false });
     const [isSuccess, setIsSuccess] = useState(false);
 
+    // Helper to remove invisible unicode characters that might be copied by mistake
+    const sanitize = (str: string) => str.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '').trim();
+
     const handleLogin = () => {
         let hasError = false;
         const newShake = { username: false, password: false, auth: false, button: false };
 
-        if (!username) { newShake.username = true; hasError = true; }
-        if (!password) { newShake.password = true; hasError = true; }
-        if (!authCode) { newShake.auth = true; hasError = true; }
+        const cleanUser = sanitize(username);
+        const cleanPass = sanitize(password);
+        const cleanCode = sanitize(authCode);
+
+        if (!cleanUser) { newShake.username = true; hasError = true; }
+        if (!cleanPass) { newShake.password = true; hasError = true; }
+        if (!cleanCode) { newShake.auth = true; hasError = true; }
 
         if (hasError) {
             setShake(newShake);
@@ -30,11 +37,11 @@ export const AdminAuthModal: React.FC<{ onClose: () => void; onLogin: () => void
         }
 
         // Check against constants
-        if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password && authCode === ADMIN_CREDENTIALS.authCode) {
-            logAction('admin', `Admin Login: ${username}`, `Auth Code used: ${authCode}`);
+        if (cleanUser === ADMIN_CREDENTIALS.username && cleanPass === ADMIN_CREDENTIALS.password && cleanCode === ADMIN_CREDENTIALS.authCode) {
+            logAction('admin', `Admin Login: ${cleanUser}`, `Auth Code used: ${cleanCode}`);
             
             // Store unique hash for session validation
-            const sessionHash = btoa(`${username}:${password}:${authCode}`);
+            const sessionHash = btoa(`${cleanUser}:${cleanPass}:${cleanCode}`);
             localStorage.setItem('mtnews-auth-hash', sessionHash);
             
             setIsSuccess(true);
@@ -43,6 +50,7 @@ export const AdminAuthModal: React.FC<{ onClose: () => void; onLogin: () => void
                 onClose();
             }, 1500);
         } else {
+            console.error('Login Failed. Input:', { cleanUser, cleanPass, cleanCode });
             setShake({ ...newShake, button: true, username: true, password: true, auth: true });
             setTimeout(() => setShake({ username: false, password: false, auth: false, button: false }), 500);
         }

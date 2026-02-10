@@ -2,11 +2,10 @@
 import { NavItem } from '../types';
 
 // --- CREDENTIALS ---
-// These are now pulled from the build environment (vite.config.ts defines them)
 export const ADMIN_CREDENTIALS = {
-    username: process.env.VITE_ADMIN_USER || 'ASWAYZ3297',
-    password: process.env.VITE_ADMIN_PASS || 'mTcAs7293',
-    authCode: process.env.VITE_AUTH_CODE || '03829'
+    username: 'ASWAYZ3297',
+    password: 'mTcAs7293',
+    authCode: '03829'
 };
 
 // --- APP CONFIGURATION ---

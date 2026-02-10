@@ -44,6 +44,14 @@ export interface ImageData {
   apiType?: 'file' | 'url';
 }
 
+export interface ImageCategory {
+    id: string;
+    name: string;
+    tags: string[];
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface LinkData {
   id: string;
   platform: 'Twitter' | 'Discord' | 'YouTube' | 'TikTok' | 'Instagram';

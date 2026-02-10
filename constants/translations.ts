@@ -236,6 +236,22 @@ export const translations = {
     selectFromList: 'Select a streamer from the list',
     trySearch: 'Search for a streamer by name',
     noSearchResults: 'No matching streamers found',
+
+    // Image Categories
+    categoriesTool: 'Categories Tool',
+    allImages: 'All Images',
+    categories: 'Categories',
+    categoryTags: 'Category Tags',
+    selectTags: 'Select Tags',
+    imagesCount: 'Images Count',
+    editTags: 'Edit Tags',
+    deleteCategory: 'Delete Category',
+    modifyCategory: 'Modify Category',
+    enterTagName: 'Search Tags...',
+    noCategories: 'No categories created yet.',
+    createCategory: 'Create Category',
+    tagSelection: 'Tag Selection',
+    selectedTags: 'Selected Tags',
   },
   ar: {
     Home: 'الرئيسية',
@@ -473,5 +489,21 @@ export const translations = {
     selectFromList: 'اختر ستريمر من القائمة',
     trySearch: 'ابحث عن ستريمر بالاسم',
     noSearchResults: 'لم يتم العثور على نتائج',
+
+    // Image Categories
+    categoriesTool: 'أداة الفئات',
+    allImages: 'كل الصور',
+    categories: 'الفئات',
+    categoryTags: 'وسوم الفئة',
+    selectTags: 'اختر الوسوم',
+    imagesCount: 'عدد الصور',
+    editTags: 'تعديل الوسوم',
+    deleteCategory: 'حذف الفئة',
+    modifyCategory: 'تعديل الفئة',
+    enterTagName: 'ابحث عن وسم...',
+    noCategories: 'لا توجد فئات بعد.',
+    createCategory: 'إنشاء فئة',
+    tagSelection: 'اختيار الوسوم',
+    selectedTags: 'الوسوم المحددة',
   }
 };
