@@ -11,14 +11,14 @@ import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
-import { SnowEffect } from './components/SnowEffect';
+{/*import { SnowEffect } from './components/SnowEffect';*/}
 import { AdminAuthModal } from './components/modals/AuthModals';
 import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
 
 // Layout Components
 import { Sidebar } from './components/layout/Sidebar';
 import { Hotbar } from './components/layout/Hotbar';
-import { HeroBackground } from './components/ui/HeroBackground';
+{/*import { HeroBackground } from './components/ui/HeroBackground';*/}
 
 // Lazy Load Sections for Performance
 const HomePage = lazy(() => import('./sections/Home').then(module => ({ default: module.HomePage })));
@@ -167,9 +167,9 @@ const AppContent: React.FC = () => {
                         {activeSection !== 'Map' && (
                             <motion.div
                                 key={activeSection}
-                                initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
-                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                                exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.3, ease: "easeOut" }}
                                 className="w-full max-w-[1600px] mx-auto min-h-full"
                             >
