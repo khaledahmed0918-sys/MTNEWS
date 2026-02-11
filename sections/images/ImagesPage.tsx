@@ -5,7 +5,7 @@ import { Icons, imagesData, appConfig } from '../../constants';
 import { ImageData, ImageCategory } from '../../types';
 import { useI18n } from '../../contexts/I18nContext';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
-import { useImages } from '../../contexts/ImageContext';
+import { useImages, ImageProvider } from '../../contexts/ImageContext';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { LazyImageCard } from './LazyImageCard';
 import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, AdminPendingRequestsModal } from '../../components/modals/MediaModals';
@@ -26,7 +26,7 @@ const NoResults: React.FC = () => {
     );
 };
 
-export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
+const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
     const { dynamicImages, categories, requests, loading, deleteImage } = useImages(); 
     
@@ -292,3 +292,9 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         </div>
     );
 };
+
+export const ImagesPage: React.FC<{ isAdmin: boolean }> = (props) => (
+    <ImageProvider>
+        <ImagesPageContent {...props} />
+    </ImageProvider>
+);

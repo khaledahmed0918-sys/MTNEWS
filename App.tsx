@@ -8,7 +8,6 @@ import { ADMIN_CREDENTIALS, Icons } from './constants';
 import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
-import { ImageProvider } from './contexts/ImageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
@@ -208,9 +207,7 @@ const App: React.FC = () => {
             <I18nProvider>
                 <NotificationProvider>
                     <GlobalActionsLayer>
-                        <ImageProvider>
-                            <AppContent />
-                        </ImageProvider>
+                        <AppContent />
                     </GlobalActionsLayer>
                 </NotificationProvider>
             </I18nProvider>

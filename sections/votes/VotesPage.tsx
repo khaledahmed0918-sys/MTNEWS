@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -18,10 +19,11 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [showDiscordModal, setShowDiscordModal] = useState<SocialLink | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = async () => {
+    const fetchData = async (signal?: AbortSignal) => {
         try {
             const res = await fetch(`${API_BASE}/categories`, {
-                headers: { "ngrok-skip-browser-warning": "true" }
+                headers: { "ngrok-skip-browser-warning": "true" },
+                signal
             });
             if (res.ok) {
                 const data = await res.json();
@@ -32,18 +34,30 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                         image: p.image ? (p.image.startsWith('http') ? p.image : `${API_BASE}/${p.image.replace(/^uploads\//, '')}`) : ''
                     }))
                 }));
-                setGroups(processed);
+                if (!signal?.aborted) {
+                    setGroups(processed);
+                }
             }
-        } catch (e) {
+        } catch (e: any) {
+            if (e.name !== 'AbortError') console.error(e);
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
-        const interval = setInterval(fetchData, 5000); 
-        return () => clearInterval(interval);
+        const controller = new AbortController();
+        
+        fetchData(controller.signal);
+        
+        const interval = setInterval(() => {
+            fetchData(controller.signal);
+        }, 5000); 
+        
+        return () => {
+            controller.abort(); // Cancel request immediately on unmount
+            clearInterval(interval);
+        };
     }, []);
 
     const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId), [groups, activeGroupId]);

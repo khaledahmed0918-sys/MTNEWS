@@ -50,25 +50,35 @@ export const LogsPage: React.FC = () => {
     const [showDataManager, setShowDataManager] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    const fetchLogs = async () => {
+    const fetchLogs = async (signal?: AbortSignal) => {
         try {
             const res = await fetch(`${API_BASE}/logs`, {
-                headers: { "ngrok-skip-browser-warning": "true" }
+                headers: { "ngrok-skip-browser-warning": "true" },
+                signal
             });
-            if (res.ok) setLogs((await res.json()).reverse());
-        } catch (e) {}
+            if (res.ok && !signal?.aborted) setLogs((await res.json()).reverse());
+        } catch (e: any) {
+            if (e.name !== 'AbortError') console.error(e);
+        }
     };
 
     useEffect(() => {
-        fetchLogs();
-        const interval = setInterval(fetchLogs, 5000);
-        return () => clearInterval(interval);
+        const controller = new AbortController();
+        fetchLogs(controller.signal);
+        
+        const interval = setInterval(() => {
+            fetchLogs(controller.signal);
+        }, 5000);
+        
+        return () => {
+            controller.abort();
+            clearInterval(interval);
+        };
     }, [refreshTrigger]);
 
     const handleManualRefresh = () => {
         setLogs([]); // Optimistic clear to show update
         setRefreshTrigger(prev => prev + 1);
-        fetchLogs();
     };
 
     const filteredLogs = logs.filter(log => {

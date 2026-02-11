@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+
+import React, { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Icons } from '../../constants';
 
@@ -6,13 +7,12 @@ interface SpotlightCardProps {
     title: string;
     description: string;
     icon: keyof typeof Icons;
-    image: string;
     color: string;
     onClick: () => void;
     delay?: number;
 }
 
-export const SpotlightCard: React.FC<SpotlightCardProps> = ({ title, description, icon, image, color, onClick, delay = 0 }) => {
+export const SpotlightCard: React.FC<SpotlightCardProps> = ({ title, description, icon, color, onClick, delay = 0 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const y = useMotionValue(0);
@@ -64,27 +64,36 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({ title, description
                 style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
                 className="relative w-full h-full rounded-[30px] overflow-hidden group cursor-pointer border border-white/10 shadow-xl bg-[#0a0a0a]"
             >
-                {/* Background Image - Absolute Cover */}
-                <div className="absolute inset-0 w-full h-full">
-                    <img src={image} alt={title} className="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-110 transition-all duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                {/* Abstract Background Shapes (No Images) */}
+                <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0a0a0a]">
+                    <div className={`absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br ${color} opacity-20 blur-[80px] rounded-full group-hover:opacity-30 transition-opacity duration-700`} />
+                    <div className={`absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr ${color} opacity-10 blur-[60px] rounded-full group-hover:opacity-20 transition-opacity duration-700`} />
+                    
+                    {/* Geometric Pattern Overlay */}
+                    <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+                    
+                    {/* Large Icon Background */}
+                    <div className="absolute -bottom-8 -right-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500 transform group-hover:scale-110 group-hover:-rotate-12">
+                        {/* @ts-ignore */}
+                        <Icon className="w-48 h-48 text-white" />
+                    </div>
                 </div>
 
                 {/* Content */}
-                <div className="absolute inset-0 p-6 flex flex-col justify-between z-20" style={{ transform: "translateZ(20px)" }}>
-                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
+                <div className="absolute inset-0 p-8 flex flex-col justify-between z-20" style={{ transform: "translateZ(30px)" }}>
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg border border-white/10 group-hover:scale-110 transition-transform duration-300`}>
                         {/* @ts-ignore */}
-                        <Icon className="w-6 h-6 text-white" />
+                        <Icon className="w-7 h-7 text-white" />
                     </div>
                     
                     <div>
-                        <h3 className="text-2xl font-bold text-white mb-1 group-hover:text-orange-400 transition-colors">{title}</h3>
-                        <p className="text-sm text-gray-300 font-medium opacity-80 group-hover:opacity-100 transition-opacity">{description}</p>
+                        <h3 className="text-3xl font-black text-white mb-2 tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400 transition-all">{title}</h3>
+                        <p className="text-sm text-gray-400 font-medium leading-relaxed max-w-[90%] group-hover:text-white transition-colors">{description}</p>
                     </div>
                 </div>
 
                 {/* Spotlight Overlay */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/10 to-transparent" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-white/5 to-transparent mix-blend-overlay" />
             </motion.div>
         </motion.div>
     );

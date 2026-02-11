@@ -1,13 +1,13 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { ImageData, ImageCategory, ImageRequest } from '../types';
 import { useLocalStorage } from '../hooks';
 
 interface ImageContextType {
     dynamicImages: ImageData[];
     categories: ImageCategory[];
-    requests: ImageRequest[]; // All pending requests (fetched)
-    myRequestIds: string[]; // Local storage IDs for the current user
+    requests: ImageRequest[]; 
+    myRequestIds: string[]; 
     loading: boolean;
     refreshImages: () => void;
     refreshRequests: () => void;
@@ -15,11 +15,9 @@ interface ImageContextType {
     uploadImageUrl: (url: string, tags: string, signal?: AbortSignal) => Promise<void>;
     updateImageTags: (id: string, tags: string, signal?: AbortSignal) => Promise<void>;
     deleteImage: (id: string, signal?: AbortSignal) => Promise<void>;
-    // Category methods
     addCategory: (name: string, tags: string[], signal?: AbortSignal) => Promise<void>;
     removeCategory: (id: string, signal?: AbortSignal) => Promise<void>;
     updateCategoryTags: (id: string, tags: string[], signal?: AbortSignal) => Promise<void>;
-    // Request methods
     submitImageRequest: (files: File[], urls: string[], tags: string, signal?: AbortSignal) => Promise<void>;
     deleteImageRequest: (requestId: string, signal?: AbortSignal) => Promise<void>;
 }
@@ -35,12 +33,16 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [myRequestIds, setMyRequestIds] = useLocalStorage<string[]>('mtnews-my-requests', []);
     const [loading, setLoading] = useState(true);
 
-    const fetchImages = useCallback(async () => {
+    // Keep track of the abort controller for the main fetch
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const fetchImages = useCallback(async (signal?: AbortSignal) => {
         setLoading(true);
         try {
             // Fetch Images
             const resImages = await fetch(`${API_BASE}/images`, {
-                headers: { "ngrok-skip-browser-warning": "true" }
+                headers: { "ngrok-skip-browser-warning": "true" },
+                signal
             });
             if (resImages.ok) {
                 const data = await resImages.json();
@@ -57,23 +59,29 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
             // Fetch Categories
             const resCats = await fetch(`${API_BASE}/icategorys`, {
-                headers: { "ngrok-skip-browser-warning": "true" }
+                headers: { "ngrok-skip-browser-warning": "true" },
+                signal
             });
             if(resCats.ok) {
                 setCategories(await resCats.json());
             }
 
-        } catch (e) {
-            // Silent fail for network issues
+        } catch (e: any) {
+            if (e.name !== 'AbortError') {
+                console.error("Image fetch failed", e);
+            }
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) {
+                setLoading(false);
+            }
         }
     }, []);
 
-    const fetchRequests = useCallback(async () => {
+    const fetchRequests = useCallback(async (signal?: AbortSignal) => {
         try {
             const res = await fetch(`${API_BASE}/images/request`, {
-                headers: { "ngrok-skip-browser-warning": "true" }
+                headers: { "ngrok-skip-browser-warning": "true" },
+                signal
             });
             if (res.ok) {
                 const data = await res.json();
@@ -87,22 +95,43 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 });
                 setRequests(mapped);
             }
-        } catch (e) {
-            // Silent fail to avoid console spam on polling
+        } catch (e: any) {
+            if (e.name !== 'AbortError') {
+                // Silent fail
+            }
         }
     }, []);
 
+    // Initial load and cleanup on unmount
     useEffect(() => {
-        fetchImages();
-        fetchRequests();
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        fetchImages(signal);
+        fetchRequests(signal);
+
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
     }, [fetchImages, fetchRequests]);
 
     const refreshImages = () => {
-        fetchImages();
+        // Cancel previous if pending? Maybe not necessary for refresh, 
+        // but good practice if user spams refresh.
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        abortControllerRef.current = new AbortController();
+        fetchImages(abortControllerRef.current.signal);
     };
 
     const refreshRequests = () => {
-        fetchRequests();
+        if (abortControllerRef.current) {
+             fetchRequests(abortControllerRef.current.signal);
+        } else {
+             // Fallback if controller missing (shouldn't happen if mounted)
+             fetchRequests();
+        }
     };
 
     const uploadImageUrl = async (url: string, tags: string, signal?: AbortSignal) => {
@@ -116,7 +145,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if (!res.ok) throw new Error("Upload failed");
-        await fetchImages();
+        await fetchImages(signal);
     };
 
     const uploadImageFile = async (file: File, tags: string, signal?: AbortSignal) => {
@@ -130,7 +159,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if (!res.ok) throw new Error("Upload failed");
-        await fetchImages();
+        await fetchImages(signal);
     };
 
     const updateImageTags = async (id: string, tags: string, signal?: AbortSignal) => {
@@ -144,7 +173,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if (!res.ok) throw new Error("Update failed");
-        await fetchImages();
+        await fetchImages(signal);
     };
 
     const deleteImage = async (id: string, signal?: AbortSignal) => {
@@ -154,7 +183,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if (!res.ok) throw new Error(`Delete failed`);
-        await fetchImages();
+        await fetchImages(signal);
     };
 
     // --- CATEGORY METHODS ---
@@ -167,7 +196,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if(!res.ok) throw new Error("Failed to add category");
-        await fetchImages(); // Refresh to get new cat list
+        await fetchImages(signal); 
     };
 
     const removeCategory = async (id: string, signal?: AbortSignal) => {
@@ -178,7 +207,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if(!res.ok) throw new Error("Failed to remove category");
-        await fetchImages();
+        await fetchImages(signal);
     };
 
     const updateCategoryTags = async (id: string, tags: string[], signal?: AbortSignal) => {
@@ -189,7 +218,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if(!res.ok) throw new Error("Failed to update category tags");
-        await fetchImages();
+        await fetchImages(signal);
     };
 
     // --- REQUEST METHODS ---
@@ -198,13 +227,11 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const fd = new FormData();
         const requestData: any[] = [];
 
-        // Prepare File Metadata
         files.forEach(f => {
             fd.append('files', f);
             requestData.push({ type: 'file', tags });
         });
 
-        // Prepare URL Metadata
         urls.forEach(url => {
             requestData.push({ type: 'url', url, tags });
         });
@@ -221,11 +248,10 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (res.ok) {
             const data = await res.json();
             if (data.requests) {
-                // Save new request IDs to local storage
                 const newIds = data.requests.map((r: any) => r.id);
                 setMyRequestIds(prev => [...prev, ...newIds]);
             }
-            try { await fetchRequests(); } catch (e) {}
+            try { await fetchRequests(signal); } catch (e) {}
         } else {
             throw new Error("Request Submission Failed");
         }
@@ -243,9 +269,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
 
         if (res.ok) {
-            // Remove from local tracking if exists
             setMyRequestIds(prev => prev.filter(id => id !== requestId));
-            try { await fetchRequests(); } catch (e) {}
+            try { await fetchRequests(signal); } catch (e) {}
         } else {
             throw new Error("Failed to remove request");
         }

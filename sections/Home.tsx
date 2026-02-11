@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Icons, appConfig, imagesData } from '../constants';
+import { Icons, appConfig } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
 import { Section } from '../types';
 import { SpotlightCard } from '../components/ui/SpotlightCard';
@@ -9,49 +10,27 @@ interface HomeProps {
     setActiveSection: (s: Section) => void;
 }
 
-const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string; descKey: string; color: string; defaultImage: string }[] = [
-    { id: 'Live', icon: 'Tv', titleKey: 'Live', descKey: 'Watch streamers live', color: 'from-green-500 to-emerald-700', defaultImage: 'https://www.bragitoff.com/wp-content/uploads/2015/11/GTAV_ATLUS_8192x8192.png' }, // Full Map Image Here
-    { id: 'Votes', icon: 'Vote', titleKey: 'Votes', descKey: 'Vote for your favorites', color: 'from-orange-500 to-red-600', defaultImage: 'https://i.postimg.cc/KYVDZtRY/IMG-3577.jpg' },
-    { id: 'Map', icon: 'Map', titleKey: 'Map', descKey: 'Interactive server map', color: 'from-blue-500 to-indigo-700', defaultImage: 'https://www.bragitoff.com/wp-content/uploads/2015/11/GTAV_ATLUS_8192x8192.png' },
-    { id: 'Images', icon: 'Images', titleKey: 'Images', descKey: 'Gallery & Wallpapers', color: 'from-purple-500 to-pink-700', defaultImage: 'https://i.postimg.cc/zffD5PQ6/image-(29).png' },
-    { id: 'Links', icon: 'Links', titleKey: 'Links', descKey: 'Important links', color: 'from-gray-500 to-gray-700', defaultImage: 'https://i.postimg.cc/PrqvJ5RX/IMG-7993.png' },
-    { id: 'Credits', icon: 'Credits', titleKey: 'Credits', descKey: 'Team & Contributors', color: 'from-yellow-500 to-amber-700', defaultImage: 'https://i.postimg.cc/PqrfTrx9/batman-red-2732x2732-19038.jpg$0' }
+const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string; descKey: string; color: string }[] = [
+    { id: 'Live', icon: 'Tv', titleKey: 'Live', descKey: 'Watch streamers live', color: 'from-green-500 to-emerald-700' }, 
+    { id: 'Votes', icon: 'Vote', titleKey: 'Votes', descKey: 'Vote for your favorites', color: 'from-orange-500 to-red-600' },
+    { id: 'Map', icon: 'Map', titleKey: 'Map', descKey: 'Interactive server map', color: 'from-blue-500 to-indigo-700' },
+    { id: 'Images', icon: 'Images', titleKey: 'Images', descKey: 'Gallery & Wallpapers', color: 'from-purple-500 to-pink-700' },
+    { id: 'Links', icon: 'Links', titleKey: 'Links', descKey: 'Important links', color: 'from-gray-500 to-gray-700' },
+    { id: 'Credits', icon: 'Credits', titleKey: 'Credits', descKey: 'Team & Contributors', color: 'from-yellow-500 to-amber-700' }
 ];
 
 export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
     const { t } = useI18n();
-    const [cardImages, setCardImages] = useState<Record<string, string>>({});
-
-    // Cycle images randomly
-    useEffect(() => {
-        const initialMap: Record<string, string> = {};
-        sectionConfigs.forEach(c => initialMap[c.id] = c.defaultImage);
-        setCardImages(initialMap);
-
-        const interval = setInterval(() => {
-            const randomSection = sectionConfigs[Math.floor(Math.random() * sectionConfigs.length)];
-            // Don't cycle Map or Live card images to keep the static map feel if desired, or allow cycle
-            // Keeping Map static
-            if(randomSection.id === 'Map' || randomSection.id === 'Live') return; 
-
-            const realImages = imagesData.filter(img => img.url.startsWith('http') && !img.url.includes('placeholder'));
-            if (realImages.length > 0) {
-                const randomImage = realImages[Math.floor(Math.random() * realImages.length)].url;
-                setCardImages(prev => ({ ...prev, [randomSection.id]: randomImage }));
-            }
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, []);
 
     return (
         <div className="w-full flex flex-col gap-12 pb-20">
             {/* Hero Section */}
-            <section className="relative w-full min-h-[50vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[40px] overflow-hidden border border-white/5 shadow-2xl group">
-                <div className="absolute inset-0 z-0">
-                    <img src="https://i.postimg.cc/pTfhgj8R/IMG-4271.jpg" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[3s]" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/80 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+            <section className="relative w-full min-h-[50vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[40px] overflow-hidden border border-white/5 shadow-2xl group bg-[#080808]">
+                {/* Abstract Hero Background */}
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                    <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-orange-600/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 animate-pulse" style={{ animationDuration: '10s' }} />
+                    <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 animate-pulse" style={{ animationDuration: '15s' }} />
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
                 </div>
 
                 <div className="relative z-10 max-w-2xl flex flex-col gap-6">
@@ -123,7 +102,6 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                             title={t(card.titleKey)}
                             description={card.descKey}
                             icon={card.icon}
-                            image={cardImages[card.id] || card.defaultImage}
                             color={card.color}
                             onClick={() => setActiveSection(card.id)}
                             delay={i * 0.1}

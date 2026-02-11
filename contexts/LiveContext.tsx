@@ -32,11 +32,13 @@ const LiveContext = createContext<LiveContextType | null>(null);
 // Utility: Wait function
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Utility: Fetch with Infinite Retry & Backoff
-const fetchKickDataInfiniteRetry = async (username: string, attempt = 1): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo }> => {
+// Utility: Fetch with Infinite Retry & Backoff & Abort Support
+const fetchKickDataInfiniteRetry = async (username: string, attempt = 1, signal?: AbortSignal): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo }> => {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    
     const t = Date.now();
     try {
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}?t=${t}`)}`);
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}?t=${t}`)}`, { signal });
         
         if (response.status === 429) throw new Error("Rate Limit");
         if (!response.ok) throw new Error("Network Error");
@@ -60,11 +62,15 @@ const fetchKickDataInfiniteRetry = async (username: string, attempt = 1): Promis
                 category_name: livestream?.categories?.[0]?.name || '', category_icon: livestream?.categories?.[0]?.image_url || '', thumbnail: livestream?.thumbnail?.url || ''
             }
         };
-    } catch (e) {
+    } catch (e: any) {
+        if (e.name === 'AbortError' || signal?.aborted) throw e;
+
         // Backoff: 2s, 4s, 8s, up to max 30s
         const backoff = Math.min(2000 * Math.pow(1.5, attempt), 30000);
         await delay(backoff + (Math.random() * 500));
-        return fetchKickDataInfiniteRetry(username, attempt + 1);
+        
+        // Recursive retry
+        return fetchKickDataInfiniteRetry(username, attempt + 1, signal);
     }
 };
 
@@ -74,6 +80,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [loading, setLoading] = useState(true);
     const [lastAction, setLastAction] = useState<{ type: string, description: string, payload: any } | null>(null);
     const isRefreshing = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
     
     // Performance: Mutable Ref to hold data before batching to state
     const streamersBuffer = useRef<Map<string, Streamer>>(new Map());
@@ -102,8 +109,6 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     // --- BATCH UPDATER ---
-    // This effect runs periodically to flush the buffer to React state
-    // preventing 100s of re-renders per minute
     useEffect(() => {
         const interval = setInterval(() => {
             if (needsUpdate.current) {
@@ -118,20 +123,18 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [sortStreamers]);
 
     // --- MAIN REFRESH LOGIC ---
-    const refreshStreamers = useCallback(async () => {
+    const refreshStreamers = useCallback(async (signal?: AbortSignal) => {
         if (isRefreshing.current) return;
         isRefreshing.current = true;
         
         if (streamersBuffer.current.size === 0) setLoading(true);
 
         // 1. Build Definition Map (Source of Truth)
-        // We update the Buffer, not the State directly yet
         
         // A. Local (Priority)
         localStreamers.forEach(l => {
             const key = l.kickUsername.toLowerCase();
             const existing = streamersBuffer.current.get(key);
-            // Preserve loaded data if exists
             streamersBuffer.current.set(key, { ...l, isSystem: false, kickData: existing?.kickData, streamData: existing?.streamData });
         });
 
@@ -158,7 +161,10 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // C. Admin Global (Optional)
         try {
-            const res = await fetch(`${API_BASE}/streamers?t=${Date.now()}`, { headers: { "ngrok-skip-browser-warning": "true" } });
+            const res = await fetch(`${API_BASE}/streamers?t=${Date.now()}`, { 
+                headers: { "ngrok-skip-browser-warning": "true" },
+                signal 
+            });
             if (res.ok) {
                 const globals = await res.json();
                 globals.forEach((g: any) => {
@@ -180,9 +186,13 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     }
                 });
             }
-        } catch (e) { /* silent fail */ }
+        } catch (e: any) { 
+            if (e.name === 'AbortError') return;
+        }
 
-        // Initial Flush to ensure skeletons are visible
+        if (signal?.aborted) return;
+
+        // Initial Flush
         needsUpdate.current = true;
         setLoading(false);
 
@@ -192,41 +202,46 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let activeRequests = 0;
 
         const processItem = async (streamer: Streamer) => {
-            const newData = await fetchKickDataInfiniteRetry(streamer.kickUsername);
-            
-            // Notification Logic
-            const inBuffer = streamersBuffer.current.get(streamer.kickUsername.toLowerCase());
-            const wasLive = inBuffer?.streamData?.is_live || false;
-            const isLive = newData.streamData.is_live;
-            
-            if (streamer.notificationsEnabled && !wasLive && isLive) {
-                if (Notification.permission === "granted") {
-                    new Notification(`${streamer.kickUsername} is Live!`, {
-                        body: newData.streamData.title,
-                        icon: newData.kickData.profile_pic
-                    });
+            if (signal?.aborted) return;
+            try {
+                const newData = await fetchKickDataInfiniteRetry(streamer.kickUsername, 1, signal);
+                
+                // Notification Logic
+                const inBuffer = streamersBuffer.current.get(streamer.kickUsername.toLowerCase());
+                const wasLive = inBuffer?.streamData?.is_live || false;
+                const isLive = newData.streamData.is_live;
+                
+                if (streamer.notificationsEnabled && !wasLive && isLive) {
+                    if (Notification.permission === "granted") {
+                        new Notification(`${streamer.kickUsername} is Live!`, {
+                            body: newData.streamData.title,
+                            icon: newData.kickData.profile_pic
+                        });
+                    }
                 }
-            }
 
-            // Update Buffer
-            const currentItem = streamersBuffer.current.get(streamer.kickUsername.toLowerCase());
-            if (currentItem) {
-                streamersBuffer.current.set(streamer.kickUsername.toLowerCase(), {
-                    ...currentItem,
-                    kickData: newData.kickData,
-                    streamData: newData.streamData,
-                    lastUpdated: Date.now()
-                });
-                needsUpdate.current = true; // Signal for next flush
+                // Update Buffer
+                const currentItem = streamersBuffer.current.get(streamer.kickUsername.toLowerCase());
+                if (currentItem) {
+                    streamersBuffer.current.set(streamer.kickUsername.toLowerCase(), {
+                        ...currentItem,
+                        kickData: newData.kickData,
+                        streamData: newData.streamData,
+                        lastUpdated: Date.now()
+                    });
+                    needsUpdate.current = true; 
+                }
+            } catch (e: any) {
+                // Abort is handled by not updating state
             }
         };
 
         const next = () => {
-            if (queue.length === 0 && activeRequests === 0) {
+            if ((queue.length === 0 && activeRequests === 0) || signal?.aborted) {
                 isRefreshing.current = false;
                 return;
             }
-            while (activeRequests < CONCURRENCY_LIMIT && queue.length > 0) {
+            while (activeRequests < CONCURRENCY_LIMIT && queue.length > 0 && !signal?.aborted) {
                 const item = queue.shift();
                 if (item) {
                     activeRequests++;
@@ -242,13 +257,25 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     }, [localStreamers]);
 
+    // Initial Load & Interval
     useEffect(() => {
-        refreshStreamers();
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        refreshStreamers(signal);
+        
         const interval = setInterval(() => {
             isRefreshing.current = false; 
-            refreshStreamers();
+            refreshStreamers(signal);
         }, 180000);
-        return () => clearInterval(interval);
+
+        return () => {
+            // CRITICAL: Stop everything when leaving the page
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            clearInterval(interval);
+        };
     }, [refreshStreamers]);
 
     // --- ACTIONS ---
@@ -259,8 +286,6 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (exists) {
                 return prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s);
             }
-            // If it's a system streamer, add copy to local to persist favorite
-            // We need to find it from current state/buffer
             const sys = Array.from(streamersBuffer.current.values()).find(s => s.id === id);
             if (sys) {
                 return [...prev, { ...sys, isFavorite: !sys.isFavorite, isSystem: false }];
@@ -268,7 +293,6 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return prev;
         });
         
-        // Optimistic Update in Buffer
         const s = Array.from(streamersBuffer.current.values()).find(s => s.id === id);
         if (s) {
             s.isFavorite = !s.isFavorite;
@@ -301,14 +325,20 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if(prev.some(p => p.kickUsername.toLowerCase() === s.kickUsername.toLowerCase())) return prev;
             return [s, ...prev];
         });
-        setTimeout(() => { isRefreshing.current = false; refreshStreamers(); }, 100);
+        // Reset and force refresh logic
+        setTimeout(() => { 
+            if(abortControllerRef.current) abortControllerRef.current.abort();
+            abortControllerRef.current = new AbortController();
+            isRefreshing.current = false; 
+            refreshStreamers(abortControllerRef.current.signal); 
+        }, 100);
     };
 
     const deleteStreamer = async (id: string, isSystem: boolean, kickUsername: string) => {
         if (!isSystem) {
             setLocalStreamers(prev => prev.filter(s => s.id !== id));
             setLastAction({ type: 'delete', description: `Deleted ${kickUsername}`, payload: localStreamers.find(s => s.id === id) });
-            // Remove from buffer if it was local only
+            
             if (!defaultStreamersList.some(u => u.toLowerCase().includes(kickUsername.toLowerCase()))) {
                 streamersBuffer.current.delete(kickUsername.toLowerCase());
                 needsUpdate.current = true;
@@ -328,7 +358,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return (
         <LiveContext.Provider value={{ 
-            streamers, loading, refreshStreamers, 
+            streamers, loading, refreshStreamers: () => refreshStreamers(abortControllerRef.current?.signal), 
             addLocalStreamer, deleteStreamer, deleteMultipleStreamers,
             toggleFavorite, toggleNotify,
             addGlobalStreamer, editGlobalStreamer, undoAction, lastAction
