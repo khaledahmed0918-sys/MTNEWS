@@ -12,7 +12,7 @@ import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, Ad
 import { CategoryAdminModal, CategoryCard } from './ImageCategoryComponents';
 import { ConfirmDeleteModal } from '../../components/modals/ConfirmationModals';
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 20; // Reduced to 20 for performance
 
 const NoResults: React.FC = () => {
     const { t } = useI18n();
@@ -111,8 +111,7 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     return (
         <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative">
              <div className="flex flex-col gap-6 w-full mx-auto mb-4">
-                
-                {/* Top Controls: Search & Filters */}
+                {/* Controls */}
                 <div className="flex flex-col md:flex-row gap-4">
                     <GlassCard className="!p-0 !rounded-full flex-1 order-2 md:order-1 shadow-lg border border-white/20">
                         <div className="relative w-full h-full">
@@ -160,18 +159,6 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
                          {isAdmin && (
                             <div className="flex gap-2">
-                                {appConfig.addImages && (
-                                     <motion.button
-                                        onClick={() => setShowPendingModal(true)}
-                                        className="px-4 py-3 bg-yellow-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-yellow-700 transition-colors shadow-lg border border-white/10 relative"
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                    >
-                                        <Icons.Clock className="w-5 h-5" />
-                                        <span className="hidden md:inline">Requests</span>
-                                        {requests.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border border-black shadow-sm">{requests.length}</span>}
-                                    </motion.button>
-                                )}
                                 <motion.button
                                     onClick={() => setShowCategoryTool(true)}
                                     className="px-4 py-3 bg-purple-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg border border-white/10"
@@ -245,40 +232,37 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             </div>
                         )}
                         
-                        {loading && displayedImages.length === 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {Array.from({length:8}).map((_,i) => (
-                                    <div key={i} className="aspect-[3/4] bg-white/5 rounded-2xl animate-pulse border border-white/5"></div>
-                                ))}
+                        {/* Images Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {displayedImages.map(img => (
+                                <LazyImageCard 
+                                    key={img.id} 
+                                    img={img} 
+                                    onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
+                                    onErrorChange={() => {}}
+                                    retryKey={retrySession}
+                                    onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Load More Button */}
+                        {visibleCount < filteredImages.length && (
+                            <div className="flex justify-center py-8">
+                                <motion.button 
+                                    onClick={handleLoadMore}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="px-8 py-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/10 rounded-full font-bold text-white transition-all shadow-lg flex items-center gap-2"
+                                >
+                                    <span>More</span>
+                                    <Icons.ArrowDown className="w-4 h-4" />
+                                    <span className="text-xs opacity-50">({filteredImages.length - visibleCount} remaining)</span>
+                                </motion.button>
                             </div>
-                        ) : displayedImages.length > 0 ? (
-                            <>
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {displayedImages.map(img => (
-                                        <LazyImageCard 
-                                            key={img.id} 
-                                            img={img} 
-                                            onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
-                                            onErrorChange={() => {}}
-                                            retryKey={retrySession}
-                                            onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
-                                        />
-                                    ))}
-                                </div>
-                                {visibleCount < filteredImages.length && (
-                                    <div className="flex justify-center py-8">
-                                        <button 
-                                            onClick={handleLoadMore}
-                                            className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full font-bold text-white transition-all hover:scale-105 shadow-lg"
-                                        >
-                                            Load More ({filteredImages.length - visibleCount} remaining)
-                                        </button>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <NoResults />
                         )}
+                        
+                        {displayedImages.length === 0 && <NoResults />}
                      </motion.div>
                  )}
              </AnimatePresence>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, navConfig } from '../../constants';
@@ -15,6 +16,21 @@ interface SidebarProps {
     isMobileOpen: boolean;
     toggleMobileMenu: () => void;
 }
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05
+        }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    show: { opacity: 1, x: 0 }
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
     activeSection, 
@@ -56,13 +72,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
 
                     {/* Navigation */}
-                    <div className="flex flex-col gap-2 w-full flex-1 overflow-y-auto no-scrollbar">
+                    <motion.div 
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                        className="flex flex-col gap-2 w-full flex-1 overflow-y-auto no-scrollbar"
+                    >
                         {menuItems.map((item: any) => {
                             const Icon = Icons[item.id as keyof typeof Icons] || Icons.Circle;
                             const isActive = activeSection === item.id;
                             
                             return (
-                                <button
+                                <motion.button
+                                    variants={itemVariants}
                                     key={item.id}
                                     onClick={() => setActiveSection(item.id)}
                                     className={`relative group flex items-center p-3 rounded-xl transition-all duration-300 ${isCollapsed ? 'justify-center' : ''} ${isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
@@ -83,10 +105,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             {t(item.id)}
                                         </motion.span>
                                     )}
-                                </button>
+                                </motion.button>
                             );
                         })}
-                    </div>
+                    </motion.div>
 
                     {/* Bottom Controls */}
                     <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-white/5">
@@ -131,13 +153,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </div>
 
                             {/* Mobile Nav */}
-                            <div className="flex flex-col gap-3 flex-1">
+                            <motion.div 
+                                variants={containerVariants}
+                                initial="hidden"
+                                animate="show"
+                                className="flex flex-col gap-3 flex-1"
+                            >
                                 {menuItems.map((item: any) => {
                                     const Icon = Icons[item.id as keyof typeof Icons] || Icons.Circle;
                                     const isActive = activeSection === item.id;
                                     
                                     return (
-                                        <button
+                                        <motion.button
+                                            variants={itemVariants}
                                             key={item.id}
                                             onClick={() => { setActiveSection(item.id); toggleMobileMenu(); }}
                                             className={`flex items-center p-4 rounded-xl transition-all ${isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
@@ -145,10 +173,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             {/* @ts-ignore */}
                                             <Icon className={`w-6 h-6 ${isActive ? 'text-orange-500' : ''}`} />
                                             <span className="ml-4 font-bold text-xl">{t(item.id)}</span>
-                                        </button>
+                                        </motion.button>
                                     );
                                 })}
-                            </div>
+                            </motion.div>
 
                             {/* Mobile Controls */}
                             <div className="grid grid-cols-3 gap-4 mt-6">

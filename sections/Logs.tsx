@@ -68,7 +68,7 @@ export const LogsPage: React.FC = () => {
         
         const interval = setInterval(() => {
             fetchLogs(controller.signal);
-        }, 5000);
+        }, 5000); 
         
         return () => {
             controller.abort();

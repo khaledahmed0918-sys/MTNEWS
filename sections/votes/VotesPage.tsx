@@ -27,6 +27,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             });
             if (res.ok) {
                 const data = await res.json();
+                // Map the raw data to UI types
                 const processed = data.map((g: any) => ({
                     ...g,
                     people: g.people.map((p: any) => ({
@@ -148,7 +149,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     return (
         <div className="w-full max-w-[1800px] mx-auto flex flex-col gap-8 relative min-h-[600px] px-2">
             {/* Header */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md sticky top-0 z-40">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md sticky top-0 z-40 shadow-xl">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <button 
                         onClick={() => setActiveGroupId(null)} 

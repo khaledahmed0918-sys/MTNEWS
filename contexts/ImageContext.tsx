@@ -169,7 +169,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 "Content-Type": "application/json",
                 "ngrok-skip-browser-warning": "true"
             },
-            body: JSON.stringify({ tags }),
+            body: JSON.stringify({ tags: tags.split(',').map(t => t.trim()).filter(Boolean) }),
             signal
         });
         if (!res.ok) throw new Error("Update failed");
@@ -227,16 +227,23 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const fd = new FormData();
         const requestData: any[] = [];
 
+        // Upload files logic needs to be handled either by sending files directly or converting to URL first
+        // Based on API: POST /images/request supports files and urls
+        
         files.forEach(f => {
-            fd.append('files', f);
-            requestData.push({ type: 'file', tags });
+            fd.append('files', f); // Assuming backend accepts array of files
         });
 
-        urls.forEach(url => {
-            requestData.push({ type: 'url', url, tags });
-        });
-
-        fd.append('images', JSON.stringify(requestData));
+        // For this specific API implementation, we might need to send individual requests if the endpoint expects one item at a time,
+        // OR the endpoint handles bulk. Based on prompt "Add Request: support files OR urls", let's assume one request per item for safety or construct a bulk payload if backend supports it.
+        // Assuming backend handles array 'files' and 'images' metadata string
+        
+        const metadata = [
+            ...files.map(() => ({ type: 'file', tags })),
+            ...urls.map(url => ({ type: 'url', url, tags }))
+        ];
+        
+        fd.append('images', JSON.stringify(metadata));
 
         const res = await fetch(`${API_BASE}/images/request`, {
             method: 'POST',
