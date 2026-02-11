@@ -11,7 +11,7 @@ import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
-{/*import { SnowEffect } from './components/SnowEffect';*/}
+import { SnowEffect } from './components/SnowEffect';
 import { AdminAuthModal } from './components/modals/AuthModals';
 import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
 
