@@ -154,16 +154,32 @@ export interface KickStreamInfo {
     thumbnail: string;
 }
 
+export interface StreamerLinks {
+    discord?: string;
+    kick?: string;
+    instagram?: string;
+    youtube?: string;
+    twitter?: string;
+}
+
 export interface Streamer {
     id: string;
-    kickUsername: string;
-    kickData: KickChannelInfo;
-    streamData: KickStreamInfo;
+    kickUsername: string; // Used for API calls
+    kickData?: KickChannelInfo; // From Kick API
+    streamData?: KickStreamInfo; // From Kick API
+    
+    // User/System Defined Data
     customTitle?: string;
     tags: string[];
+    characters?: string[]; // Added for Admin System
     notes?: string;
+    links?: StreamerLinks; // Added for Admin System
+    
+    // System Flags
+    isSystem: boolean; // True if from Admin API
     isFavorite: boolean;
     notificationsEnabled: boolean;
+    
     lastUpdated: number;
     addedAt: number;
 }

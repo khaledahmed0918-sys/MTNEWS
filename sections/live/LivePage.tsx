@@ -1,188 +1,129 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
-import { useToast } from '../../contexts/NotificationContext';
-import { Streamer, KickChannelInfo, KickStreamInfo } from '../../types';
-import { useLocalStorage } from '../../hooks';
-import { logAction } from '../../utils/logging';
+import { Streamer } from '../../types';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { AddStreamerModal, StreamerDetailModal, StreamerCard } from './LiveComponents';
+import { AddStreamerModal, StreamerDetailModal, StreamerCard, AdminLiveToolsModal } from './LiveComponents';
+import { LiveProvider, useLive } from '../../contexts/LiveContext';
 
-// Utility to handle retries for fetch
-const fetchWithRetry = async (url: string, retries = 3, backoff = 500): Promise<Response> => {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const res = await fetch(url);
-            if (res.ok) return res;
-        } catch (e) {
-            // Ignore error and retry
-        }
-        await new Promise(r => setTimeout(r, backoff * (i + 1)));
-    }
-    throw new Error('Fetch failed after retries');
-};
-
-const fetchKickChannel = async (query: string): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null> => {
-    let username = query.trim();
-    // Clean username from URL if pasted
-    const urlMatch = username.match(/kick\.com\/([^\/]+)/);
-    if (urlMatch) username = urlMatch[1];
-    
-    // Clean query parameters or slashes
-    username = username.split('?')[0].replace(/\//g, '');
-
-    try {
-        const response = await fetchWithRetry(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}`)}`);
-        
-        const json = await response.json();
-        const root = json.data ? json.data : json; 
-        const user = root.user;
-        const livestream = root.livestream;
-        
-        if (!user) return null;
-        
-        const kickData: KickChannelInfo = {
-            id: root.id, slug: root.slug, user_id: user.id, username: user.username, profile_pic: user.profile_pic,
-            banner: root.banner_image?.url || root.banner_image || user.banner_image || user.banner || '', 
-            followers_count: root.followers_count, created_at: root.created_at, bio: user.bio || ''
-        };
-        const streamData: KickStreamInfo = {
-            id: livestream ? livestream.id : 0, is_live: livestream !== null, viewers: livestream ? livestream.viewers_count : 0,
-            start_time: livestream ? (livestream.created_at || livestream.start_time) : '', title: livestream ? livestream.session_title : '',
-            category_name: livestream?.categories?.[0]?.name || '', category_icon: livestream?.categories?.[0]?.image_url || '', thumbnail: livestream?.thumbnail?.url || ''
-        };
-        return { kickData, streamData };
-    } catch (e) { 
-        return null; 
-    }
-};
-
-const searchKickChannels = async (query: string): Promise<{username: string, pic: string}[]> => {
-    if(!query || query.length < 3) return [];
-    try {
-        const response = await fetchWithRetry(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/search/channels?q=${query}`)}`);
-        const json = await response.json();
-        const channels = json.channels || json; // Handle potentially different response structures
-        
-        if (Array.isArray(channels)) {
-            return channels.map((c: any) => ({
-                username: c.slug || c.username,
-                pic: c.user?.profile_pic || c.profile_pic || 'https://via.placeholder.com/150'
-            }));
-        }
-        return [];
-    } catch (e) {
-        return [];
-    }
-};
-
-const useStreamers = () => {
-    const [streamers, setStreamers] = useLocalStorage<Streamer[]>('mtnews-streamers-v1', []);
-    return [streamers, setStreamers] as const;
-};
-
-export const LivePage: React.FC<{ snowEnabled: boolean }> = ({ snowEnabled }) => {
+const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled, isAdmin }) => {
     const { t, dir } = useI18n();
-    const { addToast } = useToast();
-    const [streamers, setStreamers] = useStreamers();
+    const { streamers, loading, deleteStreamer, undoAction, lastAction } = useLive();
+    
     const [search, setSearch] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showAdminTools, setShowAdminTools] = useState(false);
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
-    const [deletedStreamer, setDeletedStreamer] = useState<{ data: Streamer, expires: number } | null>(null);
 
     const filteredStreamers = useMemo(() => {
         let list = [...streamers];
         if (search.trim()) {
             const q = search.toLowerCase();
             list = list.filter(s => 
-                (s.kickUsername || '').toLowerCase().includes(q) || (s.customTitle && s.customTitle.toLowerCase().includes(q)) ||
-                (s.tags || []).some(tag => tag.toLowerCase().includes(q)) || (s.streamData?.is_live && (s.streamData.title || '').toLowerCase().includes(q))
+                (s.kickUsername || '').toLowerCase().includes(q) || 
+                (s.tags || []).some(tag => tag.toLowerCase().includes(q))
             );
         }
+        // Sort: Live first, then by viewers
         list.sort((a, b) => {
-            if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
-            if (a.streamData?.is_live !== b.streamData?.is_live) return a.streamData?.is_live ? -1 : 1;
-            if (a.streamData?.is_live) return (b.streamData?.viewers || 0) - (a.streamData?.viewers || 0);
-            return (b.lastUpdated || 0) - (a.lastUpdated || 0);
+            const aLive = a.streamData?.is_live || false;
+            const bLive = b.streamData?.is_live || false;
+            if (aLive !== bLive) return aLive ? -1 : 1;
+            if (aLive) return (b.streamData?.viewers || 0) - (a.streamData?.viewers || 0);
+            return 0;
         });
         return list;
     }, [streamers, search]);
 
-    const handleAdd = (newStreamer: Streamer) => {
-        setStreamers(prev => [...prev, newStreamer]);
-        addToast(t('streamerAdded'), 'success');
-        logAction('system', 'Streamer Added', newStreamer.kickUsername);
-    };
-
-    const handleDelete = (id: string) => {
-        const target = streamers.find(s => s.id === id);
-        if (!target) return;
-        setStreamers(prev => prev.filter(s => s.id !== id));
-        setDeletedStreamer({ data: target, expires: Date.now() + 5000 });
-    };
-
-    useEffect(() => {
-        if (!deletedStreamer) return;
-        const timer = setTimeout(() => { setDeletedStreamer(null); }, 5000);
-        return () => clearTimeout(timer);
-    }, [deletedStreamer]);
-
-    const handleRestore = () => {
-        if (deletedStreamer) {
-            setStreamers(prev => [...prev, deletedStreamer.data]);
-            setDeletedStreamer(null);
-            addToast(t('restored'), 'success');
+    const handleDeleteLocal = async () => {
+        if (selectedStreamer && !selectedStreamer.isSystem) {
+            await deleteStreamer(selectedStreamer.id, false, selectedStreamer.kickUsername);
+            setSelectedStreamer(null);
         }
-    };
-
-    const toggleFavorite = (id: string) => {
-        setStreamers(prev => prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s));
-    };
-
-    const toggleNotify = (id: string) => {
-        setStreamers(prev => prev.map(s => s.id === id ? { ...s, notificationsEnabled: !s.notificationsEnabled } : s));
-        const s = streamers.find(x => x.id === id);
-        if(s) addToast(s.notificationsEnabled ? t('notificationsOff') : t('notificationsOn'), 'info');
     };
 
     return (
         <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative min-h-[600px]">
+            {/* Control Bar */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <GlassCard className="flex-1 w-full !rounded-full !p-2 flex items-center relative" isSnowy={snowEnabled}>
+                <GlassCard className="flex-1 w-full !rounded-full !p-2 flex items-center relative shadow-lg" isSnowy={snowEnabled}>
                     <Icons.Search className={`absolute text-gray-400 w-5 h-5 ${dir==='rtl' ? 'right-5' : 'left-5'}`} />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchLive')} className={`w-full bg-transparent p-3 outline-none text-white placeholder-gray-500 ${dir==='rtl' ? 'pr-14 pl-4' : 'pl-14 pr-4'}`} />
                 </GlassCard>
-                <motion.button onClick={() => setShowAddModal(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-4 bg-green-600 rounded-full text-white font-bold shadow-lg shadow-green-500/20 flex items-center gap-2 shrink-0">
-                    <Icons.Plus className="w-5 h-5" /><span>{t('addStreamer')}</span>
-                </motion.button>
+                
+                <div className="flex gap-3">
+                    {isAdmin && (
+                        <motion.button onClick={() => setShowAdminTools(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-4 bg-purple-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2">
+                            <Icons.Settings className="w-5 h-5" /><span>Edit / Tools</span>
+                        </motion.button>
+                    )}
+                    <motion.button onClick={() => setShowAddModal(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-4 bg-green-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2">
+                        <Icons.Plus className="w-5 h-5" /><span>{t('addStreamer')}</span>
+                    </motion.button>
+                </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <AnimatePresence>
-                    {filteredStreamers.map(streamer => (
-                        <motion.div key={streamer.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', damping: 25 }}>
-                            <StreamerCard streamer={streamer} onClick={() => setSelectedStreamer(streamer)} onToggleFavorite={toggleFavorite} onToggleNotify={toggleNotify} snowEnabled={snowEnabled} />
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
-            {filteredStreamers.length === 0 && (
+
+            {/* Grid */}
+            {loading ? (
+                <div className="flex justify-center py-20"><Icons.Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <AnimatePresence>
+                        {filteredStreamers.map(streamer => (
+                            <motion.div key={streamer.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', damping: 25 }}>
+                                <StreamerCard 
+                                    streamer={streamer} 
+                                    onClick={() => setSelectedStreamer(streamer)} 
+                                    onToggleFavorite={() => {}} 
+                                    onToggleNotify={() => {}} 
+                                    snowEnabled={snowEnabled} 
+                                />
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+            
+            {filteredStreamers.length === 0 && !loading && (
                 <div className="flex flex-col items-center justify-center py-20 text-center opacity-60"><Icons.Tv className="w-20 h-20 mb-4 text-gray-500" /><h3 className="text-xl font-bold text-white">{t('noStreamers')}</h3></div>
             )}
+
+            {/* Modals */}
+            <AnimatePresence>{showAddModal && <AddStreamerModal onClose={() => setShowAddModal(false)} />}</AnimatePresence>
+            <AnimatePresence>{showAdminTools && <AdminLiveToolsModal onClose={() => setShowAdminTools(false)} />}</AnimatePresence>
+            <AnimatePresence>{selectedStreamer && <StreamerDetailModal streamer={selectedStreamer} onClose={() => setSelectedStreamer(null)} onDelete={handleDeleteLocal} snowEnabled={snowEnabled} />}</AnimatePresence>
+
+            {/* Global Undo Notification */}
             <AnimatePresence>
-                {showAddModal && (
-                    <AddStreamerModal 
-                        onClose={() => setShowAddModal(false)} 
-                        onAdd={handleAdd} 
-                        existingStreamers={streamers} 
-                        fetchKickChannel={fetchKickChannel}
-                        searchKickChannels={searchKickChannels} 
-                    />
+                {lastAction && (
+                    <motion.div 
+                        initial={{ y: 100, opacity: 0 }} 
+                        animate={{ y: 0, opacity: 1 }} 
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-6 right-6 z-[10000]"
+                    >
+                        <div className="bg-neutral-900 border border-white/10 p-4 rounded-xl shadow-2xl flex items-center gap-4">
+                            <div className="flex flex-col">
+                                <span className="text-xs text-gray-400 font-bold uppercase">Action</span>
+                                <span className="text-sm font-bold text-white">{lastAction.description}</span>
+                            </div>
+                            <button onClick={undoAction} className="px-4 py-2 bg-orange-500 rounded-lg text-white font-bold text-xs flex items-center gap-1 hover:bg-orange-600 transition-colors">
+                                <Icons.RotateCcw className="w-3 h-3" /> Restore / Undo
+                            </button>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
-            <AnimatePresence>{selectedStreamer && (<StreamerDetailModal streamer={selectedStreamer} onClose={() => setSelectedStreamer(null)} onDelete={() => handleDelete(selectedStreamer.id)} snowEnabled={snowEnabled} />)}</AnimatePresence>
-            <AnimatePresence>{deletedStreamer && (<motion.div initial={{ opacity: 0, y: 50, x: 50 }} animate={{ opacity: 1, y: 0, x: 0 }} exit={{ opacity: 0, y: 50, x: 50 }} className="fixed bottom-4 right-4 z-[10000]"><div className="bg-neutral-900 border border-white/10 rounded-2xl p-1 shadow-2xl flex items-center gap-4 pl-4 pr-1.5 py-1.5 overflow-hidden relative min-w-[300px]"><motion.div className="absolute bottom-0 left-0 h-0.5 bg-orange-500" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 5, ease: "linear" }} /><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden"><img src={deletedStreamer.data.kickData?.profile_pic || ''} className="w-full h-full object-cover" /></div><div className="flex flex-col"><span className="font-bold text-sm text-white">{t('streamerDeleted')}</span><span className="text-[10px] text-gray-400">{deletedStreamer.data.kickUsername}</span></div></div><div className="ml-auto relative z-10"><button onClick={handleRestore} className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors">{t('restore')}</button></div></div></motion.div>)}</AnimatePresence>
         </div>
+    );
+};
+
+export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = (props) => {
+    return (
+        <LiveProvider>
+            <LivePageContent {...props} />
+        </LiveProvider>
     );
 };

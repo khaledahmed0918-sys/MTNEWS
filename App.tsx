@@ -53,6 +53,13 @@ const AppContent: React.FC = () => {
                 setIsAdmin(true);
             }
         }
+        
+        // Track Visitor
+        fetch("https://dolabriform-fascinatedly-lecia.ngrok-free.dev/visitor", { 
+             method: "POST",
+             headers: { "ngrok-skip-browser-warning": "true" } 
+        }).catch(() => {});
+
     }, []);
 
     const handleLogout = () => {
@@ -63,7 +70,7 @@ const AppContent: React.FC = () => {
     const renderSection = () => {
         switch (activeSection) {
             case 'Home': return <HomePage />;
-            case 'Live': return <LivePage snowEnabled={snowEnabled} />;
+            case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
             case 'Votes': return <VotesPage isAdmin={isAdmin} />;
             case 'Map': return <MapPageFull />;
             case 'Threads': return <ThreadsPage />;

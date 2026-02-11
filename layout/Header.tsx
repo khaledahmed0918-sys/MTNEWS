@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, translations } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
@@ -9,13 +9,36 @@ import { Section } from '../types';
 export const Header: React.FC<{ activeSection: Section; isAdmin: boolean; onAdminClick: () => void; snowEnabled: boolean; toggleSnow: () => void }> = ({ activeSection, isAdmin, onAdminClick, snowEnabled, toggleSnow }) => {
   const { lang, setLang, t } = useI18n();
   const [theme, toggleTheme] = useTheme();
+  const [visitors, setVisitors] = useState<number | null>(null);
   const toggleLanguage = () => setLang(lang === 'en' ? 'ar' : 'en');
   const subTextColor = 'text-gray-600 dark:text-gray-300';
   const buttonBg = 'bg-white/40 dark:bg-white/10 border-gray-300 dark:border-white/20 text-black dark:text-white shadow-sm backdrop-blur-md';
 
+  useEffect(() => {
+      if (isAdmin) {
+          fetch("https://dolabriform-fascinatedly-lecia.ngrok-free.dev/visitors", { headers: { "ngrok-skip-browser-warning": "true" }})
+            .then(r => r.json())
+            .then(d => setVisitors(d.visitors))
+            .catch(() => {});
+      }
+  }, [isAdmin]);
+
   return (
     <header className="w-full p-4 flex justify-between items-start relative z-[100]">
-        <div className="flex-1"></div>
+        <div className="flex-1 flex justify-start">
+             <AnimatePresence>
+                {isAdmin && visitors !== null && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: -20 }} 
+                        animate={{ opacity: 1, x: 0 }}
+                        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 shadow-lg text-sm font-bold text-white"
+                    >
+                        <Icons.Users className="w-4 h-4 text-green-400" />
+                        <span>{visitors.toLocaleString()} Visitors</span>
+                    </motion.div>
+                )}
+             </AnimatePresence>
+        </div>
         <motion.div 
             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="flex-1 flex flex-col items-center pt-2"
