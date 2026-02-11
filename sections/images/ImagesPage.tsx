@@ -5,12 +5,11 @@ import { Icons, imagesData, appConfig } from '../../constants';
 import { ImageData, ImageCategory } from '../../types';
 import { useI18n } from '../../contexts/I18nContext';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
-import { useImages, ImageProvider } from '../../contexts/ImageContext';
+import { useImages } from '../../contexts/ImageContext';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { LazyImageCard } from './LazyImageCard';
 import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, AdminPendingRequestsModal } from '../../components/modals/MediaModals';
 import { CategoryAdminModal, CategoryCard } from './ImageCategoryComponents';
-import { ConfirmDeleteModal } from '../../components/modals/ConfirmationModals';
 
 const PAGE_SIZE = 20; 
 
@@ -26,9 +25,10 @@ const NoResults: React.FC = () => {
     );
 };
 
-const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
+export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
-    const { dynamicImages, categories, requests, loading, deleteImage } = useImages(); 
+    const { dynamicImages, categories, requests, loading, deleteImage, uploadImageUrl } = useImages(); 
+    const { requestDelete } = useGlobalActions();
     
     // UI State
     const [viewMode, setViewMode] = useState<'all' | 'categories'>('all');
@@ -43,7 +43,6 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [showCategoryTool, setShowCategoryTool] = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showPendingModal, setShowPendingModal] = useState(false);
-    const [deleteConfirmImg, setDeleteConfirmImg] = useState<ImageData | null>(null);
     const [retrySession, setRetrySession] = useState(0);
 
     // Scroll to top on mount
@@ -95,13 +94,15 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         e.stopPropagation();
         const isBuiltIn = imagesData.some(i => i.id === img.id);
         if (isBuiltIn) { alert("Cannot delete built-in images."); return; }
-        setDeleteConfirmImg(img);
-    };
-
-    const confirmDelete = async () => {
-        if (!deleteConfirmImg) return;
-        await deleteImage(deleteConfirmImg.id);
-        setDeleteConfirmImg(null);
+        
+        requestDelete(
+            t('deleteImage'),
+            t('deleteConfirm'),
+            async () => { await deleteImage(img.id); },
+            async () => { await uploadImageUrl(img.url, img.tags.join(', ')); },
+            'image',
+            `Deleted Image ID: ${img.id}`
+        );
     };
 
     const handleReloadAll = () => {
@@ -153,7 +154,7 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                 whileTap={{ scale: 0.95 }}
                             >
                                 <Icons.Plus className="w-5 h-5" />
-                                <span className="hidden md:inline">Request Image</span>
+                                <span className="hidden md:inline">{t('requestImage')}</span>
                             </motion.button>
                         )}
 
@@ -272,13 +273,6 @@ const ImagesPageContent: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
              <AnimatePresence>{showCategoryTool && isAdmin && <CategoryAdminModal onClose={() => setShowCategoryTool(false)} allImages={allImages} />}</AnimatePresence>
              <AnimatePresence>{showRequestModal && <UserImageRequestModal onClose={() => setShowRequestModal(false)} />}</AnimatePresence>
              <AnimatePresence>{showPendingModal && isAdmin && <AdminPendingRequestsModal onClose={() => setShowPendingModal(false)} />}</AnimatePresence>
-             <AnimatePresence>{deleteConfirmImg && (<ConfirmDeleteModal isOpen={true} onClose={() => setDeleteConfirmImg(null)} onConfirm={confirmDelete} title={t('deleteImage')} message={`${t('deleteConfirm')} (${deleteConfirmImg.tags.join(', ')})`} />)}</AnimatePresence>
         </div>
     );
 };
-
-export const ImagesPage: React.FC<{ isAdmin: boolean }> = (props) => (
-    <ImageProvider>
-        <ImagesPageContent {...props} />
-    </ImageProvider>
-);

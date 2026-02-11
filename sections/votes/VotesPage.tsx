@@ -92,7 +92,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                      <div>
                          <h2 className="text-3xl font-display font-black text-white">{t('voteCategories')}</h2>
-                         <p className="text-gray-400 text-sm">Select a category to start voting</p>
+                         <p className="text-gray-400 text-sm">{t('selectCategoryToVote')}</p>
                      </div>
                      {isAdmin && (
                          <motion.button 

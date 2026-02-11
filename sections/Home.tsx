@@ -12,12 +12,12 @@ interface HomeProps {
 
 // Static configuration for UI cards with Vibrant Colors
 const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string; descKey: string; color: string; gradient: string }[] = [
-    { id: 'Live', icon: 'Tv', titleKey: 'Live', descKey: 'Watch streamers live', color: 'from-green-400 to-emerald-600', gradient: 'bg-gradient-to-br from-green-500/10 to-emerald-900/10' }, 
-    { id: 'Votes', icon: 'Vote', titleKey: 'Votes', descKey: 'Vote for your favorites', color: 'from-orange-400 to-red-600', gradient: 'bg-gradient-to-br from-orange-500/10 to-red-900/10' },
-    { id: 'Map', icon: 'Map', titleKey: 'Map', descKey: 'Interactive server map', color: 'from-blue-400 to-indigo-600', gradient: 'bg-gradient-to-br from-blue-500/10 to-indigo-900/10' },
-    { id: 'Images', icon: 'Images', titleKey: 'Images', descKey: 'Gallery & Wallpapers', color: 'from-purple-400 to-pink-600', gradient: 'bg-gradient-to-br from-purple-500/10 to-pink-900/10' },
-    { id: 'Links', icon: 'Links', titleKey: 'Links', descKey: 'Important links', color: 'from-cyan-400 to-blue-600', gradient: 'bg-gradient-to-br from-cyan-500/10 to-blue-900/10' },
-    { id: 'Credits', icon: 'Credits', titleKey: 'Credits', descKey: 'Team & Contributors', color: 'from-yellow-400 to-amber-600', gradient: 'bg-gradient-to-br from-yellow-500/10 to-amber-900/10' }
+    { id: 'Live', icon: 'Tv', titleKey: 'Live', descKey: 'liveDesc', color: 'from-green-400 to-emerald-600', gradient: 'bg-gradient-to-br from-green-500/10 to-emerald-900/10' }, 
+    { id: 'Votes', icon: 'Vote', titleKey: 'Votes', descKey: 'votesDesc', color: 'from-orange-400 to-red-600', gradient: 'bg-gradient-to-br from-orange-500/10 to-red-900/10' },
+    { id: 'Map', icon: 'Map', titleKey: 'Map', descKey: 'mapDesc', color: 'from-blue-400 to-indigo-600', gradient: 'bg-gradient-to-br from-blue-500/10 to-indigo-900/10' },
+    { id: 'Images', icon: 'Images', titleKey: 'Images', descKey: 'imagesDesc', color: 'from-purple-400 to-pink-600', gradient: 'bg-gradient-to-br from-purple-500/10 to-pink-900/10' },
+    { id: 'Links', icon: 'Links', titleKey: 'Links', descKey: 'linksDesc', color: 'from-cyan-400 to-blue-600', gradient: 'bg-gradient-to-br from-cyan-500/10 to-blue-900/10' },
+    { id: 'Credits', icon: 'Credits', titleKey: 'Credits', descKey: 'creditsDesc', color: 'from-yellow-400 to-amber-600', gradient: 'bg-gradient-to-br from-yellow-500/10 to-amber-900/10' }
 ];
 
 export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
@@ -63,7 +63,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                     {/* Status Badge - Removed Backdrop Blur */}
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 w-fit">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">System Online</span>
+                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{t('systemOnline')}</span>
                     </div>
 
                     <h1 className="text-4xl md:text-6xl font-display font-black leading-[0.95] text-white tracking-tight">
@@ -82,7 +82,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                             className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 hover:scale-105 transition-all flex items-center gap-2"
                         >
                             <Icons.Play className="w-5 h-5 fill-current" />
-                            <span>Start Exploring</span>
+                            <span>{t('startExploring')}</span>
                         </button>
                         <a 
                             href={appConfig.donateLink} 
@@ -104,7 +104,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                     { label: t('followers'), value: '70K+', color: 'text-blue-400', bg: 'bg-blue-900/10 border-blue-500/10' },
                     { label: t('teamWorkers'), value: '3', color: 'text-orange-400', bg: 'bg-orange-900/10 border-orange-500/10' },
                     { label: t('goal'), value: '100K', color: 'text-green-400', bg: 'bg-green-900/10 border-green-500/10' },
-                    { label: 'Status', value: 'Online', color: 'text-purple-400', bg: 'bg-purple-900/10 border-purple-500/10' }
+                    { label: t('onlineStatus'), value: 'Online', color: 'text-purple-400', bg: 'bg-purple-900/10 border-purple-500/10' }
                 ].map((stat, i) => (
                     <motion.div 
                         key={i} 
@@ -121,7 +121,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
             <motion.section variants={itemVariants} className="flex flex-col gap-5">
                 <div className="flex items-center gap-4 px-2">
                     <div className="h-px flex-1 bg-white/5"></div>
-                    <h2 className="text-xl font-display font-black text-white uppercase tracking-widest opacity-80">Explore Sections</h2>
+                    <h2 className="text-xl font-display font-black text-white uppercase tracking-widest opacity-80">{t('exploreSections')}</h2>
                     <div className="h-px flex-1 bg-white/5"></div>
                 </div>
 
@@ -130,7 +130,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                         <SpotlightCard 
                             key={card.id}
                             title={t(card.titleKey)}
-                            description={card.descKey}
+                            description={t(card.descKey)}
                             icon={card.icon}
                             color={card.color}
                             onClick={() => setActiveSection(card.id)}

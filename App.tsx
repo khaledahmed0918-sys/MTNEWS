@@ -2,18 +2,21 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Section } from './types';
-import { ADMIN_CREDENTIALS, Icons } from './constants';
+import { ADMIN_CREDENTIALS, Icons, navConfig } from './constants';
 
 // Providers
 import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
+import { LiveProvider } from './contexts/LiveContext';
+import { ImageProvider } from './contexts/ImageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
 import { SnowEffect } from './components/SnowEffect';
 import { AdminAuthModal } from './components/modals/AuthModals';
 import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
+import { HeroBackground } from './components/ui/HeroBackground';
 
 // Layout Components
 import { Sidebar } from './components/layout/Sidebar';
@@ -43,7 +46,14 @@ const SectionLoader = () => (
 
 // --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
-    const [activeSection, setActiveSection] = useState<Section>('Home');
+    // Initial state set based on first enabled section
+    const [activeSection, setActiveSection] = useState<Section>(() => {
+        const home = navConfig.find(n => n.id === 'Home');
+        if (home && home.enabled) return 'Home';
+        const first = navConfig.find(n => n.enabled);
+        return first ? first.id : 'Home';
+    });
+    
     const [isAdmin, setIsAdmin] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -80,6 +90,17 @@ const AppContent: React.FC = () => {
         }).catch(() => {});
     }, []);
 
+    // Ensure active section is enabled
+    useEffect(() => {
+        const currentConfig = navConfig.find(n => n.id === activeSection);
+        if (!currentConfig || !currentConfig.enabled) {
+            const firstEnabled = navConfig.find(n => n.enabled);
+            if (firstEnabled) {
+                setActiveSection(firstEnabled.id);
+            }
+        }
+    }, [activeSection]);
+
     // Scroll to top when section changes
     useLayoutEffect(() => {
         if (scrollContainerRef.current) {
@@ -107,6 +128,10 @@ const AppContent: React.FC = () => {
 
     // Render Section Logic
     const renderSection = () => {
+        // Safety check to ensure we don't render disabled sections
+        const currentConfig = navConfig.find(n => n.id === activeSection);
+        if (!currentConfig || !currentConfig.enabled) return null;
+
         return (
             <Suspense fallback={<SectionLoader />}>
                 {(() => {
@@ -129,6 +154,7 @@ const AppContent: React.FC = () => {
 
     return (
         <div className="flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
+            <HeroBackground section={activeSection} />
             <SnowEffect enabled={snowEnabled} />
 
             {/* Sidebar (Desktop & Mobile) */}
@@ -148,7 +174,7 @@ const AppContent: React.FC = () => {
                 className={`flex-1 h-full overflow-hidden relative flex flex-col z-10 transition-all duration-300 ease-in-out`}
             >
                 {/* Content Container - Scrollable */}
-                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4 md:p-8 pb-32 md:pb-8">
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-0 md:p-8 pb-32 md:pb-8">
                     {/* Persistent Map Layer (Always mounted, hidden when inactive to preserve WebGL context) */}
                     <div 
                         style={{ 
@@ -172,7 +198,7 @@ const AppContent: React.FC = () => {
                                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                                 exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
                                 transition={{ duration: 0.3, ease: "easeOut" }}
-                                className="w-full max-w-[1600px] mx-auto min-h-full"
+                                className={`w-full ${activeSection === 'Home' ? 'max-w-[1600px]' : 'max-w-[1900px]'} mx-auto min-h-full px-4 md:px-0 pt-4 md:pt-0`}
                             >
                                 {renderSection()}
                             </motion.div>
@@ -208,7 +234,11 @@ const App: React.FC = () => {
             <I18nProvider>
                 <NotificationProvider>
                     <GlobalActionsLayer>
-                        <AppContent />
+                        <LiveProvider>
+                            <ImageProvider>
+                                <AppContent />
+                            </ImageProvider>
+                        </LiveProvider>
                     </GlobalActionsLayer>
                 </NotificationProvider>
             </I18nProvider>

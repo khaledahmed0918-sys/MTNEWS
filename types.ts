@@ -183,3 +183,11 @@ export interface Streamer {
     lastUpdated: number;
     addedAt: number;
 }
+
+export interface StreamerRequest {
+    id: string;
+    username: string;
+    tags: string[];
+    characters: string[];
+    createdAt: string;
+}

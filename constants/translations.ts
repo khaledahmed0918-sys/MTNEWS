@@ -236,6 +236,13 @@ export const translations = {
     selectFromList: 'Select a streamer from the list',
     trySearch: 'Search for a streamer by name',
     noSearchResults: 'No matching streamers found',
+    watchChannel: 'Watch Channel',
+    watchStream: 'Watch Stream',
+    liveNow: 'Live Now',
+    about: 'About',
+    noBio: 'No bio available.',
+    characters: 'Characters',
+    removeFromList: 'Remove from List',
 
     // Image Categories
     categoriesTool: 'Categories Tool',
@@ -252,6 +259,42 @@ export const translations = {
     createCategory: 'Create Category',
     tagSelection: 'Tag Selection',
     selectedTags: 'Selected Tags',
+
+    // NEW TRANSLATIONS
+    startExploring: 'Start Exploring',
+    systemOnline: 'SYSTEM ONLINE',
+    onlineStatus: 'Online STATUS',
+    exploreSections: 'EXPLORE SECTIONS',
+    
+    liveDesc: 'Watch streamers live',
+    votesDesc: 'Vote for your favorites',
+    mapDesc: 'Interactive server map',
+    imagesDesc: 'Gallery & Wallpapers',
+    linksDesc: 'Important links',
+    creditsDesc: 'Team & Contributors',
+    
+    loadInteractiveMap: 'Load Map',
+    clickToLoadMap: 'Click to load high-resolution map assets',
+    
+    selectCategoryToVote: 'Select a category to start voting',
+    creditsSubtitle: 'The talented people behind the magic',
+    requestImage: 'Request Image',
+
+    // Socials & General
+    Twitter: 'Twitter',
+    Discord: 'Discord',
+    YouTube: 'YouTube',
+    TikTok: 'TikTok',
+    Instagram: 'Instagram',
+    Kick: 'Kick',
+    
+    pendingRequests: 'Pending Requests',
+    accept: 'Accept',
+    deny: 'Deny',
+    requestAccepted: 'Request Accepted',
+    requestDenied: 'Request Denied',
+    type: 'Type',
+    date: 'Date',
   },
   ar: {
     Home: 'الرئيسية',
@@ -489,6 +532,13 @@ export const translations = {
     selectFromList: 'اختر ستريمر من القائمة',
     trySearch: 'ابحث عن ستريمر بالاسم',
     noSearchResults: 'لم يتم العثور على نتائج',
+    watchChannel: 'مشاهدة القناة',
+    watchStream: 'مشاهدة البث',
+    liveNow: 'مباشر الآن',
+    about: 'نبذة',
+    noBio: 'لا توجد نبذة.',
+    characters: 'الشخصيات',
+    removeFromList: 'إزالة من القائمة',
 
     // Image Categories
     categoriesTool: 'أداة الفئات',
@@ -505,5 +555,41 @@ export const translations = {
     createCategory: 'إنشاء فئة',
     tagSelection: 'اختيار الوسوم',
     selectedTags: 'الوسوم المحددة',
+
+    // NEW TRANSLATIONS
+    startExploring: 'ابدأ الاستكشاف',
+    systemOnline: 'النظام متصل',
+    onlineStatus: 'حالة الاتصال',
+    exploreSections: 'تصفح الأقسام',
+    
+    liveDesc: 'شاهد البث المباشر',
+    votesDesc: 'صوت لمفضليك',
+    mapDesc: 'خريطة السيرفر التفاعلية',
+    imagesDesc: 'المعرض والخلفيات',
+    linksDesc: 'روابط مهمة',
+    creditsDesc: 'الفريق والمساهمين',
+    
+    loadInteractiveMap: 'تحميل الخريطة',
+    clickToLoadMap: 'انقر لتحميل موارد الخريطة عالية الدقة',
+    
+    selectCategoryToVote: 'اختر فئة لبدء التصويت',
+    creditsSubtitle: 'المواهب خلف هذا الإبداع',
+    requestImage: 'طلب صورة',
+
+    // Socials & General
+    Twitter: 'تويتر',
+    Discord: 'ديسكورد',
+    YouTube: 'يوتيوب',
+    TikTok: 'تيك توك',
+    Instagram: 'انستقرام',
+    Kick: 'كيك',
+    
+    pendingRequests: 'الطلبات المعلقة',
+    accept: 'قبول',
+    deny: 'رفض',
+    requestAccepted: 'تم قبول الطلب',
+    requestDenied: 'تم رفض الطلب',
+    type: 'النوع',
+    date: 'التاريخ',
   }
 };

@@ -1,14 +1,8 @@
 
-import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
-import { db, ref, remove, set } from '../firebase';
+import React, { createContext, useContext, useState, useRef, ReactNode, useCallback } from 'react';
 import { useI18n } from './I18nContext';
-import { useToast } from './NotificationContext';
 import { ConfirmDeleteModal, UndoNotification } from '../components/modals/ConfirmationModals';
-
-interface RestoreData {
-    path: string;
-    data: any;
-}
+import { logAction } from '../utils/logging';
 
 interface DeleteRequest {
     title: string;
@@ -17,62 +11,80 @@ interface DeleteRequest {
 }
 
 interface GlobalActionsContextType {
-    requestDelete: (title: string, message: string, pathsToDelete: string[], restoreDataCollector?: () => Promise<RestoreData[]>) => void;
+    requestDelete: (
+        title: string, 
+        message: string, 
+        deleteAction: () => Promise<void>, 
+        restoreAction?: () => Promise<void>,
+        logType?: string,
+        logMessage?: string
+    ) => void;
 }
 
 const GlobalActionsContext = createContext<GlobalActionsContextType | null>(null);
 
 export const GlobalActionsLayer: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { t } = useI18n();
-    const { addToast } = useToast();
-    const [deleteReq, setDeleteReq] = useState<DeleteRequest & { paths: string[], restoreCollector?: () => Promise<RestoreData[]> } | null>(null);
-    const [undoState, setUndoState] = useState<{ progress: number, data: RestoreData[] } | null>(null);
+    const [deleteReq, setDeleteReq] = useState<DeleteRequest | null>(null);
+    const [undoState, setUndoState] = useState<{ progress: number, restore: () => Promise<void>, text: string } | null>(null);
     const undoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const requestDelete = (title: string, message: string, paths: string[], restoreDataCollector?: () => Promise<RestoreData[]>) => {
+    const requestDelete = useCallback((
+        title: string, 
+        message: string, 
+        deleteAction: () => Promise<void>, 
+        restoreAction?: () => Promise<void>,
+        logType: string = 'system',
+        logMessage: string = 'Item deleted'
+    ) => {
         setDeleteReq({
              title,
              message,
-             paths,
              onConfirm: async () => {
-                 // Collect restore data first if needed
-                 let dataToRestore: RestoreData[] = [];
-                 if (restoreDataCollector) {
-                     try {
-                        dataToRestore = await restoreDataCollector();
-                     } catch(e) { console.error("Failed to collect restore data", e); }
-                 }
-
-                 // Perform delete
-                 for(const path of paths) await remove(ref(db, path));
-                 addToast(t('itemDeleted'), 'info');
-
-                 // Start Undo UI if data exists
-                 if (dataToRestore.length > 0) {
-                     let progress = 0;
-                     setUndoState({ progress: 0, data: dataToRestore });
+                 try {
+                     // 1. Perform Delete
+                     await deleteAction();
                      
-                     if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-                     undoTimerRef.current = setInterval(() => {
-                         progress += 2; // 50ms * 50 = 2500ms approx total or adjust for 5s
-                         setUndoState(prev => prev ? { ...prev, progress } : null);
-                         if (progress >= 100) {
-                             if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-                             setUndoState(null);
-                         }
-                     }, 100); // 100ms * 50 steps = 5 seconds
+                     // 2. Log Action
+                     logAction(logType, logMessage, 'Deleted via Global Action');
+
+                     // 3. Start Undo Logic if restore action is provided
+                     if (restoreAction) {
+                         if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+                         
+                         let progress = 0;
+                         setUndoState({ 
+                             progress: 0, 
+                             restore: restoreAction,
+                             text: logMessage 
+                         });
+                         
+                         undoTimerRef.current = setInterval(() => {
+                             progress += 2; // 50 steps * 100ms = 5000ms = 5s
+                             setUndoState(prev => prev ? { ...prev, progress } : null);
+                             
+                             if (progress >= 100) {
+                                 if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+                                 setUndoState(null);
+                             }
+                         }, 100);
+                     }
+                 } catch (e) {
+                     console.error("Delete action failed");
                  }
              }
         });
-    };
+    }, []);
 
     const handleRestore = async () => {
-        if (undoState && undoState.data.length > 0) {
+        if (undoState?.restore) {
             if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-            for(const item of undoState.data) {
-                await set(ref(db, item.path), item.data);
+            try {
+                await undoState.restore();
+                logAction('system', 'Item Restored', undoState.text);
+            } catch (e) {
+                console.error("Restore failed");
             }
-            addToast(t('restored'), 'success');
             setUndoState(null);
         }
     };

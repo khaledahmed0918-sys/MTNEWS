@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -13,8 +12,10 @@ import { logAction } from '../../utils/logging';
 
 const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
+// ... (Vote3DCard Component remains unchanged from previous, keeping it for context or just exporting tools) ...
+// Since I am updating the file content, I must include the whole file content to be safe and correct.
+
 // --- VOTE CARD (OPTIMIZED PERFORMANCE) ---
-// Removed useMotionValue/useTransform causing lag on large lists
 export const Vote3DCard: React.FC<{ 
     char: VoteCharacter; 
     votes: number; 
@@ -54,13 +55,8 @@ export const Vote3DCard: React.FC<{
                 whileHover={{ y: -8, borderColor: "rgba(249, 115, 22, 0.3)", boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}
                 transition={{ duration: 0.3 }}
             >
-                {/* Inner Container */}
                 <div className="absolute inset-1 rounded-[26px] bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] border border-white/5 flex flex-col items-center p-5 overflow-hidden">
-                    
-                    {/* Background Subtle Gradient (Static) */}
                     <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none" />
-
-                    {/* Image Area */}
                     <div className="relative z-10 w-40 h-40 mt-4 mb-4 group-hover:scale-105 transition-transform duration-500 ease-out">
                         <div className="w-full h-full rounded-full p-1 bg-gradient-to-br from-white/10 to-transparent border border-white/10 shadow-2xl relative overflow-hidden">
                             {char.image ? (
@@ -71,18 +67,14 @@ export const Vote3DCard: React.FC<{
                                 </div>
                             )}
                         </div>
-                        {/* Rank Badge */}
                         {char.rank && (
                             <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-orange-500 to-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg border border-white/20">
                                 {char.rank}
                             </div>
                         )}
                     </div>
-
-                    {/* Info Area */}
                     <div className="text-center z-10 w-full flex flex-col items-center gap-1 mb-auto">
                         <h3 className="text-2xl font-display font-black text-white tracking-tight drop-shadow-md line-clamp-1 px-2">{char.name}</h3>
-                        
                         <div className="flex flex-wrap gap-1.5 justify-center mt-1">
                             {char.faction && <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{char.faction}</span>}
                             {char.tags && char.tags.slice(0, 2).map(tag => (
@@ -90,10 +82,7 @@ export const Vote3DCard: React.FC<{
                             ))}
                         </div>
                     </div>
-
-                    {/* Footer / Interaction Area */}
                     <div className="w-full z-20 mt-auto pt-4 flex flex-col gap-3">
-                        {/* Social Links */}
                         <div className="flex justify-center items-center gap-2 min-h-[36px]">
                             {socialArray.map((social, idx) => {
                                 const Icon = Icons[social.platform as keyof typeof Icons] || Icons.Link;
@@ -104,7 +93,6 @@ export const Vote3DCard: React.FC<{
                                     'Discord': 'hover:bg-[#5865F2] hover:text-white',
                                     'Instagram': 'hover:bg-[#E4405F] hover:text-white'
                                 };
-                                
                                 return (
                                     <button
                                         key={idx}
@@ -118,8 +106,6 @@ export const Vote3DCard: React.FC<{
                                 );
                             })}
                         </div>
-
-                        {/* Vote Button */}
                         <motion.button 
                             onClick={handleVote} 
                             whileTap={{ scale: 0.97 }} 
@@ -143,6 +129,7 @@ export const Vote3DCard: React.FC<{
 // --- ADMIN TOOLS ---
 export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCharacter[]; groupId: string; }> = ({ onClose, candidates, groupId }) => {
     const { t, dir } = useI18n();
+    const { requestDelete } = useGlobalActions();
     const [view, setView] = useState<'menu' | 'add' | 'reset'>('menu');
     const [name, setName] = useState('');
     const [tagsInput, setTagsInput] = useState('');
@@ -170,14 +157,20 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
         }
     };
 
-    const handleDelete = async (signal: AbortSignal, id: string) => {
-        if(!confirm(t('deleteConfirm'))) return;
-        await fetch(`${API_BASE}/categories/${groupId}/remove/${id}`, {
-            method: 'POST',
-            headers: { "ngrok-skip-browser-warning": "true" },
-            signal
-        });
-        logAction('admin', 'Deleted Candidate', `ID: ${id}`);
+    const handleDelete = (id: string, candidateName: string) => {
+        requestDelete(
+            t('deleteConfirm'),
+            `Delete Candidate: ${candidateName}?`,
+            async () => {
+                await fetch(`${API_BASE}/categories/${groupId}/remove/${id}`, {
+                    method: 'POST',
+                    headers: { "ngrok-skip-browser-warning": "true" }
+                });
+            },
+            undefined, // No restore for complex candidate deletion right now without storing the full object structure locally first
+            'admin',
+            `Deleted Candidate: ${candidateName}`
+        );
     };
 
     const handleResetVotes = async (signal: AbortSignal, id: string) => {
@@ -241,7 +234,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
                                         <AsyncButton onClick={(s) => handleModifyVotes(s, c.id, 1)} label="+1" className="flex-1 py-1.5 text-xs" variant="success" />
                                         <AsyncButton onClick={(s) => handleModifyVotes(s, c.id, -1)} label="-1" className="flex-1 py-1.5 text-xs" variant="primary" />
                                         <AsyncButton onClick={(s) => handleResetVotes(s, c.id)} label={t('reset')} className="flex-1 py-1.5 text-xs" variant="danger" />
-                                        <AsyncButton onClick={(s) => handleDelete(s, c.id)} label="" className="px-3 py-1.5" variant="danger"><Icons.Trash2 className="w-4 h-4" /></AsyncButton>
+                                        <button onClick={() => handleDelete(c.id, c.name)} className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors"><Icons.Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                             ))}
@@ -256,6 +249,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
 // --- GROUP TOOLS ---
 export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { t } = useI18n();
+    const { requestDelete } = useGlobalActions();
     const [view, setView] = useState<'menu' | 'add' | 'remove'>('menu');
     const [groupName, setGroupName] = useState('');
     const [groupImage, setGroupImage] = useState('');
@@ -279,17 +273,23 @@ export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose
         onClose();
     };
 
-    const handleRemove = async (signal: AbortSignal, id: string) => {
-        if(!confirm(t('deleteConfirm'))) return;
-        await fetch(`${API_BASE}/categories/remove`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', "ngrok-skip-browser-warning": "true" },
-            body: JSON.stringify({ id }),
-            signal
-        });
-        logAction('admin', 'Deleted Category', id);
-        const res = await fetch(`${API_BASE}/categories`, { headers: { "ngrok-skip-browser-warning": "true" }});
-        if(res.ok) setGroups(await res.json());
+    const handleRemove = (id: string, name: string) => {
+        requestDelete(
+            t('deleteCategoryConfirm'),
+            `Delete Category: ${name}?`,
+            async () => {
+                await fetch(`${API_BASE}/categories/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', "ngrok-skip-browser-warning": "true" },
+                    body: JSON.stringify({ id })
+                });
+                const res = await fetch(`${API_BASE}/categories`, { headers: { "ngrok-skip-browser-warning": "true" }});
+                if(res.ok) setGroups(await res.json());
+            },
+            undefined,
+            'admin',
+            `Deleted Category: ${name}`
+        );
     };
 
     return (
@@ -314,7 +314,7 @@ export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose
                          {groups.map(g => (
                              <div key={g.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
                                  <span className="font-bold">{g.name}</span>
-                                 <AsyncButton onClick={(s) => handleRemove(s, g.id)} label={t('remove')} variant="danger" className="py-1 text-sm" />
+                                 <button onClick={() => handleRemove(g.id, g.name)} className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-bold">{t('remove')}</button>
                              </div>
                          ))}
                     </div>

@@ -5,8 +5,9 @@ import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { Streamer } from '../../types';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { AddStreamerModal, StreamerDetailModal, StreamerCard, AdminLiveToolsModal } from './LiveComponents';
-import { LiveProvider, useLive } from '../../contexts/LiveContext';
+import { AddStreamerModal, StreamerDetailModal, StreamerCard, RequestStreamerModal, AdminStreamerRequestsModal } from './LiveComponents';
+import { useLive } from '../../contexts/LiveContext';
+import { useGlobalActions } from '../../contexts/GlobalActionsContext';
 
 // --- Skeleton Component for Grid ---
 const SkeletonGrid = () => (
@@ -26,14 +27,16 @@ const SkeletonGrid = () => (
     </div>
 );
 
-const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled, isAdmin }) => {
+export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled, isAdmin }) => {
     const { t, dir } = useI18n();
-    const { streamers, loading, loadBatch, totalStreamersCount, deleteStreamer, toggleFavorite, toggleNotify, undoAction, lastAction } = useLive();
+    const { streamers, loading, loadBatch, totalStreamersCount, deleteStreamer, addLocalStreamer, toggleFavorite, toggleNotify } = useLive();
+    const { requestDelete } = useGlobalActions();
     
     const [search, setSearch] = useState('');
     const [visibleCount, setVisibleCount] = useState(10);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [showAdminTools, setShowAdminTools] = useState(false);
+    const [showRequestModal, setShowRequestModal] = useState(false);
+    const [showAdminRequests, setShowAdminRequests] = useState(false);
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
 
     // Initial Load (First 10)
@@ -47,10 +50,36 @@ const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
         loadBatch(visibleCount, 10); // Fetch next batch
     };
 
-    const handleDeleteLocal = async () => {
+    const handleDeleteLocal = () => {
         if (selectedStreamer && !selectedStreamer.isSystem) {
-            await deleteStreamer(selectedStreamer.id, false, selectedStreamer.kickUsername);
-            setSelectedStreamer(null);
+            const streamerBackup = { ...selectedStreamer };
+            
+            requestDelete(
+                t('deleteConfirm'),
+                `${t('streamerDeleted')}: ${streamerBackup.kickUsername}`,
+                async () => {
+                    await deleteStreamer(streamerBackup.id, false, streamerBackup.kickUsername);
+                    setSelectedStreamer(null);
+                },
+                async () => {
+                    addLocalStreamer(streamerBackup);
+                },
+                'admin',
+                `Deleted Streamer: ${streamerBackup.kickUsername}`
+            );
+        } else if (selectedStreamer && selectedStreamer.isSystem && isAdmin) {
+             const streamerBackup = { ...selectedStreamer };
+             requestDelete(
+                t('deleteConfirm'),
+                `${t('streamerDeleted')} (System): ${streamerBackup.kickUsername}`,
+                async () => {
+                    await deleteStreamer(streamerBackup.id, true, streamerBackup.kickUsername);
+                    setSelectedStreamer(null);
+                },
+                undefined,
+                'admin',
+                `Deleted System Streamer: ${streamerBackup.kickUsername}`
+            );
         }
     };
 
@@ -67,14 +96,39 @@ const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchLive')} className={`w-full bg-transparent p-3 outline-none text-white placeholder-gray-500 ${dir==='rtl' ? 'pr-14 pl-4' : 'pl-14 pr-4'}`} />
                 </GlassCard>
                 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
+                    {/* Request Streamer (User) */}
+                    <motion.button 
+                        onClick={() => setShowRequestModal(true)} 
+                        whileHover={{ scale: 1.05 }} 
+                        whileTap={{ scale: 0.95 }} 
+                        className="px-6 py-4 bg-green-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2"
+                    >
+                        <Icons.Plus className="w-5 h-5" />
+                        <span className="hidden sm:inline">Request Streamer</span>
+                        <span className="sm:hidden">Request</span>
+                    </motion.button>
+
+                    {/* Admin Request Manager */}
                     {isAdmin && (
-                        <motion.button onClick={() => setShowAdminTools(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-4 bg-purple-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2">
-                            <Icons.Settings className="w-5 h-5" /><span>Tools</span>
+                        <motion.button 
+                            onClick={() => setShowAdminRequests(true)} 
+                            whileHover={{ scale: 1.05 }} 
+                            whileTap={{ scale: 0.95 }} 
+                            className="px-4 py-4 bg-purple-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2"
+                        >
+                            <Icons.List className="w-5 h-5" />
                         </motion.button>
                     )}
-                    <motion.button onClick={() => setShowAddModal(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-4 bg-green-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2">
-                        <Icons.Plus className="w-5 h-5" /><span>{t('addStreamer')}</span>
+
+                    {/* Add Local Streamer */}
+                    <motion.button 
+                        onClick={() => setShowAddModal(true)} 
+                        whileHover={{ scale: 1.05 }} 
+                        whileTap={{ scale: 0.95 }} 
+                        className="px-4 py-4 bg-white/5 border border-white/10 rounded-full text-white font-bold shadow-lg flex items-center gap-2 hover:bg-white/10"
+                    >
+                        <Icons.UserPlus className="w-5 h-5" />
                     </motion.button>
                 </div>
             </div>
@@ -113,32 +167,9 @@ const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
 
             {/* Modals */}
             <AnimatePresence>{showAddModal && <AddStreamerModal onClose={() => setShowAddModal(false)} />}</AnimatePresence>
-            <AnimatePresence>{showAdminTools && <AdminLiveToolsModal onClose={() => setShowAdminTools(false)} />}</AnimatePresence>
+            <AnimatePresence>{showRequestModal && <RequestStreamerModal onClose={() => setShowRequestModal(false)} />}</AnimatePresence>
+            <AnimatePresence>{showAdminRequests && <AdminStreamerRequestsModal onClose={() => setShowAdminRequests(false)} />}</AnimatePresence>
             <AnimatePresence>{selectedStreamer && <StreamerDetailModal streamer={selectedStreamer} onClose={() => setSelectedStreamer(null)} onDelete={handleDeleteLocal} snowEnabled={snowEnabled} />}</AnimatePresence>
-
-            <AnimatePresence>
-                {lastAction && (
-                    <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-6 right-6 z-[10000]">
-                        <div className="bg-neutral-900 border border-white/10 p-4 rounded-xl shadow-2xl flex items-center gap-4">
-                            <div className="flex flex-col">
-                                <span className="text-xs text-gray-400 font-bold uppercase">Action</span>
-                                <span className="text-sm font-bold text-white">{lastAction.description}</span>
-                            </div>
-                            <button onClick={undoAction} className="px-4 py-2 bg-orange-500 rounded-lg text-white font-bold text-xs flex items-center gap-1 hover:bg-orange-600 transition-colors">
-                                <Icons.RotateCcw className="w-3 h-3" /> Undo
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </div>
-    );
-};
-
-export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = (props) => {
-    return (
-        <LiveProvider>
-            <LivePageContent {...props} />
-        </LiveProvider>
     );
 };

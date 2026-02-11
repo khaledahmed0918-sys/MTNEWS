@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     <Icon className={`w-6 h-6 transition-transform duration-300 ${isActive ? 'text-orange-500 scale-110' : 'group-hover:scale-110'}`} />
                                     
                                     {!isCollapsed && (
-                                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-4 font-bold text-lg tracking-wide whitespace-nowrap">
+                                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ms-4 font-bold text-lg tracking-wide whitespace-nowrap">
                                             {t(item.id)}
                                         </motion.span>
                                     )}
@@ -172,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         >
                                             {/* @ts-ignore */}
                                             <Icon className={`w-6 h-6 ${isActive ? 'text-orange-500' : ''}`} />
-                                            <span className="ml-4 font-bold text-xl">{t(item.id)}</span>
+                                            <span className="ms-4 font-bold text-xl">{t(item.id)}</span>
                                         </motion.button>
                                     );
                                 })}
