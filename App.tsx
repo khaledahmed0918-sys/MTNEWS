@@ -127,7 +127,7 @@ const AppContent: React.FC = () => {
 
     return (
         <div className="flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
-            <HeroBackground section={activeSection} />
+            {/*<HeroBackground section={activeSection} />*/}
             <SnowEffect enabled={snowEnabled} />
 
             {/* Sidebar (Desktop & Mobile) */}
