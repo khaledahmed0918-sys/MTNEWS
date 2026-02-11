@@ -64,7 +64,7 @@ export interface ImageRequest {
 
 export interface LinkData {
   id: string;
-  platform: 'Twitter' | 'Discord' | 'YouTube' | 'TikTok' | 'Instagram';
+  platform: 'Twitter' | 'Discord' | 'YouTube' | 'TikTok' | 'Instagram' | 'Kick';
   url: string;
 }
 

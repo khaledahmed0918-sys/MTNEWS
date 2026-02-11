@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Section } from './types';
 import { ADMIN_CREDENTIALS } from './constants';
@@ -16,9 +15,10 @@ import { SnowEffect } from './components/SnowEffect';
 import { AdminAuthModal } from './components/modals/AuthModals';
 import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
 
-// Layout
-import { Header } from './layout/Header';
-import { NavBar } from './layout/NavBar';
+// Layout Components
+import { Sidebar } from './components/layout/Sidebar';
+import { Hotbar } from './components/layout/Hotbar';
+import { HeroBackground } from './components/ui/HeroBackground';
 
 // Sections
 import { HomePage } from './sections/Home';
@@ -29,22 +29,29 @@ import { ThreadsPage, LinksPage, CreditsPage } from './sections/Media';
 import { ImagesPage } from './sections/images/ImagesPage';
 import { LogsPage } from './sections/Logs';
 
-// --- ANIMATED BACKGROUND ---
-const AnimatedBackground: React.FC = () => (
-    <div className="fixed inset-0 -z-10 w-full h-full">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-200 via-gray-200 to-slate-300 dark:from-[#1a0500] dark:via-[#2a1000] dark:to-black bg-[200%_200%] animate-gradientBG transition-colors duration-500" />
-    </div>
-);
-
-// --- MAIN APP COMPONENT ---
+// --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('Home');
     const [isAdmin, setIsAdmin] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [snowEnabled, setSnowEnabled] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    
+    // Sidebar State (Mobile)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    // Initial Auth Check & Visitor Tracking
     useEffect(() => {
+        // Clear caches logic to ensure fresh data
+        if ('caches' in window) {
+            caches.keys().then((names) => {
+                names.forEach((name) => {
+                    caches.delete(name);
+                });
+            });
+        }
+
         const hash = localStorage.getItem('mtnews-auth-hash');
         if (hash) {
             const decoded = atob(hash);
@@ -59,58 +66,115 @@ const AppContent: React.FC = () => {
              method: "POST",
              headers: { "ngrok-skip-browser-warning": "true" } 
         }).catch(() => {});
-
     }, []);
+
+    // Scroll to top when section changes
+    useLayoutEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'auto' });
+        }
+    }, [activeSection]);
+
+    // Close mobile menu when section changes
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [activeSection]);
 
     const handleLogout = () => {
         localStorage.removeItem('mtnews-auth-hash');
         setIsAdmin(false);
     };
 
+    const handleAdminClick = () => {
+        if (isAdmin) {
+            setShowLogoutModal(true);
+        } else {
+            setShowAuthModal(true);
+        }
+    };
+
+    // Render Section Logic
     const renderSection = () => {
         switch (activeSection) {
-            case 'Home': return <HomePage />;
+            case 'Home': return <HomePage setActiveSection={setActiveSection} />;
             case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
             case 'Votes': return <VotesPage isAdmin={isAdmin} />;
-            case 'Map': return <MapPageFull />;
+            // Case 'Map' is handled separately to keep it alive
             case 'Threads': return <ThreadsPage />;
             case 'Images': return <ImagesPage isAdmin={isAdmin} />;
             case 'Links': return <LinksPage />;
             case 'Credits': return <CreditsPage />;
             case 'Logs': return <LogsPage />;
-            default: return <HomePage />;
+            default: return <HomePage setActiveSection={setActiveSection} />;
         }
     };
 
     return (
-        <div className="min-h-screen text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-x-hidden">
-            <AnimatedBackground />
+        <div className="flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
+            <HeroBackground section={activeSection} />
             <SnowEffect enabled={snowEnabled} />
-            
-            <Header 
+
+            {/* Sidebar (Desktop & Mobile) */}
+            <Sidebar 
                 activeSection={activeSection} 
-                isAdmin={isAdmin} 
-                onAdminClick={() => isAdmin ? setShowLogoutModal(true) : setShowAuthModal(true)} 
+                setActiveSection={setActiveSection} 
+                isAdmin={isAdmin}
+                onAdminClick={handleAdminClick}
                 snowEnabled={snowEnabled}
                 toggleSnow={() => setSnowEnabled(!snowEnabled)}
+                isMobileOpen={isMobileMenuOpen}
+                toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             />
-            
-            <NavBar activeSection={activeSection} setActiveSection={setActiveSection} isAdmin={isAdmin} />
 
-            <main className="p-4 md:p-6 pb-20 pt-6">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeSection}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
+            {/* Main Content Area */}
+            <main 
+                className={`flex-1 h-full overflow-hidden relative flex flex-col z-10 transition-all duration-300 ease-in-out`}
+            >
+                {/* Content Container - Scrollable */}
+                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4 md:p-8 pb-32 md:pb-8">
+                    {/* Persistent Map Layer (Always mounted, hidden when inactive) */}
+                    <div 
+                        style={{ 
+                            display: activeSection === 'Map' ? 'flex' : 'none', 
+                            height: '100%',
+                            width: '100%',
+                            flexDirection: 'column'
+                        }}
                     >
-                        {renderSection()}
-                    </motion.div>
+                        <MapPageFull isVisible={activeSection === 'Map'} />
+                    </div>
+
+                    {/* Other Sections (Unmounted when inactive for performance) */}
+                    <AnimatePresence mode="wait">
+                        {activeSection !== 'Map' && (
+                            <motion.div
+                                key={activeSection}
+                                initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                                className="w-full max-w-[1600px] mx-auto min-h-full"
+                            >
+                                {renderSection()}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+                
+                {/* Hotbar (Mobile Only) - Hidden if Sidebar is Open */}
+                <AnimatePresence>
+                    {!isMobileMenuOpen && (
+                        <Hotbar 
+                            activeSection={activeSection} 
+                            setActiveSection={setActiveSection}
+                            isAdmin={isAdmin}
+                            onToggleSidebar={() => setIsMobileMenuOpen(true)}
+                        />
+                    )}
                 </AnimatePresence>
             </main>
 
+            {/* Modals */}
             <AnimatePresence>
                 {showAuthModal && <AdminAuthModal onClose={() => setShowAuthModal(false)} onLogin={() => setIsAdmin(true)} />}
                 {showLogoutModal && <LogoutConfirmModal onClose={() => setShowLogoutModal(false)} onConfirm={handleLogout} />}

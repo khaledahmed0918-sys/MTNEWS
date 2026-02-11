@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,16 +6,21 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/png" href="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MTNEWS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MTNEWS | The Ultimate Hub</title>
     
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="MTNEWS">
     <link rel="apple-touch-icon" href="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png">
-    <meta name="theme-color" content="#1a1a1a">
-    <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAibmFtZSI6ICJNVENORVdTIiwNCiAgInNob3J0X25hbWUiOiAiTVRORVdTIiwNCiAgImRlc2NyaXB0aW9uIjogIkFsbCBuZXdzIGFib3V0IE1UUlAgU2VydmVyLiIsDQogICJpY29ucyI6IFsNCiAgICB7DQogICAgICAic3JjIjogImh0dHBzOi8vaS5wb3N0aW1nLmNjL1BycXZKNVJYLyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjUxMngxMjgiDQogICAgfQ0KICBdLA0KICAic3RhcnRfdXJsIjogIi8iLA0KICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwNCiAgInRoZW1lX2NvbG9yIjogIiMxYTFhMWEiLA0KICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMWExYTFhIg0KfQ==">
+    <!-- Theme Color Matches Site BG -->
+    <meta name="theme-color" content="#050505">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
@@ -26,215 +30,147 @@
         darkMode: 'class',
         theme: {
           extend: {
-            borderRadius: {
-              'glass': '30px',
-              'glass-sm': '15px',
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+              display: ['"Outfit"', 'sans-serif'],
             },
-            keyframes: {
-              gradientBG: {
-                '0%, 100%': { backgroundPosition: '0% 50%' },
-                '50%': { backgroundPosition: '100% 50%' },
-              },
-              borderRotate: {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' },
-              },
-              fadeInDown: {
-                '0%': { opacity: '0', transform: 'translateY(-20px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              fadeOutUp: {
-                '0%': { opacity: '1', transform: 'translateY(0)' },
-                '100%': { opacity: '0', transform: 'translateY(-20px)' },
-              },
-              spinSlow: {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' },
-              },
-              shake: {
-                '0%, 100%': { transform: 'translateX(0)' },
-                '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
-                '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
-              },
-              pulseGreen: {
-                '0%': { boxShadow: '0 0 0 0 rgba(74, 222, 128, 0.7)' },
-                '70%': { boxShadow: '0 0 0 10px rgba(74, 222, 128, 0)' },
-                '100%': { boxShadow: '0 0 0 0 rgba(74, 222, 128, 0)' },
-              },
-              fall: {
-                '0%': { opacity: 0, transform: 'translateY(-20px)' },
-                '10%': { opacity: 1 },
-                '90%': { opacity: 1 },
-                '100%': { opacity: 0, transform: 'translateY(100vh)' }
+            colors: {
+              brand: {
+                orange: '#f97316',
+                red: '#ef4444',
+                dark: '#0a0a0a',
+                glass: 'rgba(255, 255, 255, 0.05)',
               }
             },
+            borderRadius: {
+              'glass': '24px',
+              'glass-sm': '16px',
+            },
+            backgroundImage: {
+              'aurora': 'linear-gradient(120deg, #f97316 0%, #ef4444 100%)',
+              'glass-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
+            },
             animation: {
-              gradientBG: 'gradientBG 15s ease infinite',
-              borderRotate: 'borderRotate 4s linear infinite',
-              fadeInDown: 'fadeInDown 0.5s ease-out forwards',
-              fadeOutUp: 'fadeOutUp 0.5s ease-in forwards',
-              spinSlow: 'spinSlow 8s linear infinite',
-              shake: 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
-              pulseGreen: 'pulseGreen 2s infinite',
-              fall: 'fall linear infinite'
+              'float': 'float 6s ease-in-out infinite',
+              'glow': 'glow 4s ease-in-out infinite alternate',
+              'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              glow: {
+                '0%': { boxShadow: '0 0 20px rgba(249, 115, 22, 0.2)' },
+                '100%': { boxShadow: '0 0 40px rgba(239, 68, 68, 0.4)' },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(20px)', opacity: 0 },
+                '100%': { transform: 'translateY(0)', opacity: 1 },
+              }
             }
           },
         },
       }
     </script>
     <style>
-      /* General Styles */
+      /* Global Reset & Base */
+      :root {
+        --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+        --glass-bg: rgba(10, 10, 10, 0.6);
+        --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
       html, body, #root {
         height: 100%;
         width: 100%;
         overflow-x: hidden;
+        background-color: #050505;
+        color: white;
       }
 
       body {
         overscroll-behavior-y: none;
-      }
-      
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+        -webkit-font-smoothing: antialiased;
       }
 
-      /* Clean Card Hover Effect */
-      .glass-card-hover {
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(249, 115, 22, 0.8);
       }
       
-      /* Leaflet Map Styles */
-      .leaflet-container {
-        background: #0fa8d2;
-        border-radius: 30px;
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* Noise Texture */
+      .bg-noise {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+      }
+
+      /* Leaflet Customization */
+      .leaflet-container {
+        background: #0f172a;
+        font-family: 'Plus Jakarta Sans', sans-serif;
         z-index: 10;
       }
-      /* High Quality Image Rendering */
-      .leaflet-image-layer, .leaflet-tile {
-        image-rendering: high-quality; 
-        image-rendering: -webkit-optimize-contrast;
-      }
       
-      /* Map Controls Position Fix */
-      .leaflet-control-container .leaflet-top,
-      .leaflet-control-container .leaflet-bottom {
-        z-index: 800; /* Ensure built-in controls are below our dropdown */
-      }
-
-      .highlighted-marker {
-        filter: drop-shadow(0 0 10px #4ade80) drop-shadow(0 0 20px #4ade80) brightness(1.5);
-        animation: pulse 1.5s infinite;
-      }
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-      }
-      
-      /* Improved Input placeholders for RTL */
-      input::placeholder {
-        opacity: 0.6;
-        transition: opacity 0.3s;
-      }
-      input:focus::placeholder {
-        opacity: 0.3;
-      }
-
-      /* RTL Specific Overrides */
-      [dir="rtl"] .font-sans {
-         font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      }
-
-      /* --- GLASS POPUP STYLES --- */
       .glass-popup .leaflet-popup-content-wrapper {
-        background: rgba(255, 255, 255, 0.15) !important;
-        backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
-        border-radius: 25px !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
-        padding: 0 !important;
-        overflow: hidden;
+        background: rgba(15, 15, 15, 0.9) !important;
+        backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important;
+        color: white !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
       }
-      
-      .glass-popup .leaflet-popup-content {
-        margin: 12px 20px !important;
-        color: #1a1a1a;
-        font-weight: bold;
-        text-align: center;
-      }
-
-      /* Dark mode adjustment for popup content text */
-      .dark .glass-popup .leaflet-popup-content {
-        color: #ffffff;
-      }
-
       .glass-popup .leaflet-popup-tip {
-        background: rgba(255, 255, 255, 0.15) !important;
-        backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
+        background: rgba(15, 15, 15, 0.9) !important;
       }
+      .glass-popup .leaflet-popup-content {
+        color: white !important;
+        font-weight: 600;
+        margin: 10px 16px;
+      }
+      .glass-popup .leaflet-popup-close-button { display: none; }
 
-      /* Hide close button for cleaner look */
-      .glass-popup .leaflet-popup-close-button {
-        display: none;
-      }
-      
-      /* SNOW EFFECT STYLES */
+      /* Snow Effect */
       .Snow {
-          display: block;
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100vh;
           pointer-events: none;
-          z-index: 9999;
-          overflow: hidden;
+          z-index: 9998;
       }
-
       .Snowflake {
           position: fixed;
           top: -20px;
           color: #FFF;
-          user-select: none;
           pointer-events: none;
-          animation-name: fall;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
+          animation: fall linear infinite;
       }
-
-      /* Keyframes for Snow Fall */
       @keyframes fall {
-          0% { opacity: 0; transform: translateY(-20px); }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { opacity: 0; transform: translateY(100vh); }
+          to { transform: translateY(105vh); }
       }
-      
-      .frosted-effect::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-          opacity: 0.3;
-          pointer-events: none;
-          z-index: 5;
-          mix-blend-mode: overlay;
-          border-radius: inherit;
-      }
-      
-      .frosted-effect {
-          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.4) !important;
-      }
-
     </style>
   <script type="importmap">
 {
@@ -258,6 +194,7 @@
 </script>
 </head>
   <body>
+    <div class="bg-noise"></div>
     <div id="root"></div>
     <script type="module">
       import React from 'react';

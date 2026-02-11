@@ -1,94 +1,136 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Icons, appConfig } from '../constants';
+import { Icons, appConfig, imagesData } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
-import { BorderGlowWrapper } from '../components/ui/SharedInputs';
+import { Section } from '../types';
+import { SpotlightCard } from '../components/ui/SpotlightCard';
 
-export const HomePage: React.FC = () => {
-    const { t, dir } = useI18n();
-    const subTextColor = 'text-gray-600 dark:text-gray-300';
-    const titleColor = 'text-gray-900 dark:text-white';
-    
-    const stats = [
-        { value: '70,000', label: t('followers'), color: 'bg-gray-400' },
-        { value: '3', label: t('teamWorkers'), color: 'bg-orange-500' },
-        { value: '100K', label: t('goal'), color: 'bg-red-500' }
-    ];
-    
-    const gradientClass = dir === 'rtl' ? 'bg-gradient-to-l' : 'bg-gradient-to-r';
+interface HomeProps {
+    setActiveSection: (s: Section) => void;
+}
+
+const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string; descKey: string; color: string; defaultImage: string }[] = [
+    { id: 'Live', icon: 'Tv', titleKey: 'Live', descKey: 'Watch streamers live', color: 'from-green-500 to-emerald-700', defaultImage: 'https://www.bragitoff.com/wp-content/uploads/2015/11/GTAV_ATLUS_8192x8192.png' }, // Full Map Image Here
+    { id: 'Votes', icon: 'Vote', titleKey: 'Votes', descKey: 'Vote for your favorites', color: 'from-orange-500 to-red-600', defaultImage: 'https://i.postimg.cc/KYVDZtRY/IMG-3577.jpg' },
+    { id: 'Map', icon: 'Map', titleKey: 'Map', descKey: 'Interactive server map', color: 'from-blue-500 to-indigo-700', defaultImage: 'https://www.bragitoff.com/wp-content/uploads/2015/11/GTAV_ATLUS_8192x8192.png' },
+    { id: 'Images', icon: 'Images', titleKey: 'Images', descKey: 'Gallery & Wallpapers', color: 'from-purple-500 to-pink-700', defaultImage: 'https://i.postimg.cc/zffD5PQ6/image-(29).png' },
+    { id: 'Links', icon: 'Links', titleKey: 'Links', descKey: 'Important links', color: 'from-gray-500 to-gray-700', defaultImage: 'https://i.postimg.cc/PrqvJ5RX/IMG-7993.png' },
+    { id: 'Credits', icon: 'Credits', titleKey: 'Credits', descKey: 'Team & Contributors', color: 'from-yellow-500 to-amber-700', defaultImage: 'https://i.postimg.cc/PqrfTrx9/batman-red-2732x2732-19038.jpg$0' }
+];
+
+export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
+    const { t } = useI18n();
+    const [cardImages, setCardImages] = useState<Record<string, string>>({});
+
+    // Cycle images randomly
+    useEffect(() => {
+        const initialMap: Record<string, string> = {};
+        sectionConfigs.forEach(c => initialMap[c.id] = c.defaultImage);
+        setCardImages(initialMap);
+
+        const interval = setInterval(() => {
+            const randomSection = sectionConfigs[Math.floor(Math.random() * sectionConfigs.length)];
+            // Don't cycle Map or Live card images to keep the static map feel if desired, or allow cycle
+            // Keeping Map static
+            if(randomSection.id === 'Map' || randomSection.id === 'Live') return; 
+
+            const realImages = imagesData.filter(img => img.url.startsWith('http') && !img.url.includes('placeholder'));
+            if (realImages.length > 0) {
+                const randomImage = realImages[Math.floor(Math.random() * realImages.length)].url;
+                setCardImages(prev => ({ ...prev, [randomSection.id]: randomImage }));
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     return (
-        <div className="w-full max-w-7xl mx-auto p-4 -mt-10">
-            <BorderGlowWrapper className="resize-y overflow-hidden min-h-[300px]" rect>
-                <div className="bg-transparent flex flex-col w-full relative">
-                    <div className="py-3 px-6 flex items-center justify-between border-b border-gray-200 dark:border-white/10 shrink-0 bg-white/5">
-                        <h2 className={`text-xl font-bold ${titleColor} tracking-wide`}>{t('mtnewsCardTitle')}</h2>
-                        <div className="flex gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        </div>
-                    </div>
-
-                    <div className="p-8 flex flex-col gap-8">
-                        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 w-full">
-                            <div className="flex-shrink-0">
-                                <motion.div whileHover={{ scale: 1.05, rotate: 5 }} className="p-1 rounded-full border-2 border-orange-500/30 shadow-[0_0_30px_rgba(249,115,22,0.3)] bg-black">
-                                    <img src="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" alt="MTNEWS Icon" className="w-40 h-40 rounded-full object-cover" />
-                                </motion.div>
-                            </div>
-                            
-                            <div className="flex flex-col gap-6 flex-1 w-full text-center md:text-start">
-                                <div className="space-y-2">
-                                    <h3 className={`text-4xl font-extrabold ${titleColor}`}>{t('cardInfoTitle')}</h3>
-                                    <div className={`h-1.5 w-24 ${gradientClass} from-orange-500 to-transparent mx-auto md:mx-0 rounded-full`}></div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-                                    {stats.map((stat) => (
-                                        <motion.div key={stat.label} whileHover={{ y: -2 }} className="flex flex-col items-center md:items-start p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shadow-sm">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className={`w-2.5 h-2.5 rounded-full ${stat.color}`}></div>
-                                                <span className={`${subTextColor} text-xs font-bold uppercase tracking-wider`}>{stat.label}</span>
-                                            </div>
-                                            <span className={`${titleColor} text-3xl font-black tracking-tight`}>{stat.value}</span>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="w-full bg-white/5 p-6 rounded-2xl border border-white/5 shadow-inner">
-                            <p className={`${subTextColor} text-lg leading-relaxed font-medium text-center md:text-start`}>{t('cardInfoDescription')}</p>
-                        </div>
-                        
-                        <div className="pt-4">
-                            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-600/20 via-orange-900/10 to-red-600/20 border border-orange-500/30 p-6 flex flex-col md:flex-row items-center justify-between gap-6 group">
-                                <div className="absolute inset-0 bg-orange-500/5 group-hover:bg-orange-500/10 transition-colors duration-500"></div>
-                                <div className="relative z-10 flex flex-col items-center md:items-start gap-1">
-                                    <h4 className="text-orange-500 font-bold text-xl flex items-center gap-2">
-                                        <Icons.Star className="w-5 h-5 fill-current" />
-                                        {t('donateButton')}
-                                    </h4>
-                                    <p className={`${subTextColor} text-sm font-medium opacity-90`}>{t('donatePrompt')}</p>
-                                </div>
-                                <motion.a 
-                                    href={appConfig.donateLink} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="relative z-10 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold py-3 px-12 rounded-xl shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] flex items-center gap-2 border border-white/20" 
-                                    whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(249, 115, 22, 0.6)' }} 
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    <span>{t('donateButton')}</span>
-                                    <Icons.ExternalLink className="w-4 h-4" />
-                                </motion.a>
-                            </div>
-                        </div>
-                    </div>
+        <div className="w-full flex flex-col gap-12 pb-20">
+            {/* Hero Section */}
+            <section className="relative w-full min-h-[50vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[40px] overflow-hidden border border-white/5 shadow-2xl group">
+                <div className="absolute inset-0 z-0">
+                    <img src="https://i.postimg.cc/pTfhgj8R/IMG-4271.jpg" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[3s]" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
                 </div>
-            </BorderGlowWrapper>
+
+                <div className="relative z-10 max-w-2xl flex flex-col gap-6">
+                    <motion.h1 
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
+                        className="text-5xl md:text-7xl font-display font-black leading-tight text-white"
+                    >
+                        THE ULTIMATE <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">MTRP NEWS</span>
+                    </motion.h1>
+
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+                        className="text-lg md:text-xl text-gray-300 font-medium leading-relaxed max-w-lg"
+                    >
+                        {t('cardInfoDescription')}
+                    </motion.p>
+
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
+                        className="flex flex-wrap gap-4"
+                    >
+                        <button onClick={() => setActiveSection('Live')} className="px-8 py-4 bg-white text-black font-bold rounded-2xl hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                            <Icons.Play className="w-5 h-5 fill-current" />
+                            Start Exploring
+                        </button>
+                        <a href={appConfig.donateLink} target="_blank" className="px-8 py-4 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 border border-white/10 backdrop-blur-md transition-colors flex items-center gap-2">
+                            <Icons.Star className="w-5 h-5" />
+                            {t('donateButton')}
+                        </a>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                    { label: t('followers'), value: '70K+', color: 'text-blue-400' },
+                    { label: t('teamWorkers'), value: '3', color: 'text-orange-400' },
+                    { label: t('goal'), value: '100K', color: 'text-green-400' },
+                    { label: 'Status', value: 'Online', color: 'text-purple-400' }
+                ].map((stat, i) => (
+                    <motion.div 
+                        key={i} 
+                        initial={{ opacity: 0, scale: 0.9 }} 
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.1 }}
+                        className="p-6 rounded-3xl bg-white/5 border border-white/5 flex flex-col items-center justify-center gap-1 text-center hover:bg-white/10 transition-colors"
+                    >
+                        <span className={`text-3xl font-display font-black ${stat.color}`}>{stat.value}</span>
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{stat.label}</span>
+                    </motion.div>
+                ))}
+            </div>
+
+            {/* Section Cards Grid */}
+            <section className="flex flex-col gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                    <h2 className="text-2xl font-display font-bold text-white uppercase tracking-widest">Explore Sections</h2>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sectionConfigs.map((card, i) => (
+                        <SpotlightCard 
+                            key={card.id}
+                            title={t(card.titleKey)}
+                            description={card.descKey}
+                            icon={card.icon}
+                            image={cardImages[card.id] || card.defaultImage}
+                            color={card.color}
+                            onClick={() => setActiveSection(card.id)}
+                            delay={i * 0.1}
+                        />
+                    ))}
+                </div>
+            </section>
         </div>
     );
 };

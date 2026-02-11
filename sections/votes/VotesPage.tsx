@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -26,7 +25,6 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             });
             if (res.ok) {
                 const data = await res.json();
-                // Ensure image paths are resolved
                 const processed = data.map((g: any) => ({
                     ...g,
                     people: g.people.map((p: any) => ({
@@ -44,7 +42,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 5000); // Poll every 5 seconds
+        const interval = setInterval(fetchData, 5000); 
         return () => clearInterval(interval);
     }, []);
 
@@ -57,7 +55,6 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
     const handleVote = async (id: string, name: string, img: string) => {
         if (!activeGroupId) return;
-        
         try {
             await fetch(`${API_BASE}/categories/${activeGroupId}/vote/${id}`, {
                 method: 'POST',
@@ -68,53 +65,113 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 body: JSON.stringify({ increment: 1 })
             });
             logAction('vote', `Voted for ${name}`, `Group: ${activeGroup?.name}`);
-            fetchData(); // Immediate refresh
+            fetchData(); 
         } catch (e) {}
     };
 
+    // --- GROUP SELECTION VIEW ---
     if (!activeGroupId) {
         return (
-            <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative min-h-[500px]">
-                 {isAdmin && (<div className="flex justify-end mb-4"><button onClick={() => setShowGroupTools(true)} className="px-4 py-2 bg-orange-500 rounded-full font-bold text-white shadow-lg flex items-center gap-2 hover:bg-orange-600"><Icons.Settings className="w-4 h-4" /> {t('tools')}</button></div>)}
+            <div className="w-full max-w-7xl mx-auto flex flex-col gap-8 relative min-h-[600px] p-2">
+                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                     <div>
+                         <h2 className="text-3xl font-display font-black text-white">{t('voteCategories')}</h2>
+                         <p className="text-gray-400 text-sm">Select a category to start voting</p>
+                     </div>
+                     {isAdmin && (
+                         <motion.button 
+                            onClick={() => setShowGroupTools(true)} 
+                            className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 hover:bg-white/10 transition-all group"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                         >
+                             <Icons.Settings className="w-5 h-5 text-gray-400 group-hover:rotate-90 transition-transform" /> 
+                             {t('tools')}
+                         </motion.button>
+                     )}
+                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {groups.map(g => (
-                        <GlassCard key={g.id} onClick={() => setActiveGroupId(g.id)} className="flex flex-col gap-4 group hover:bg-white/10 transition-colors cursor-pointer">
-                            <div className="aspect-video rounded-xl overflow-hidden bg-black/20 relative">
-                                {g.image ? <img src={g.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center"><Icons.Vote className="w-12 h-12 text-gray-600" /></div>}
-                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
-                                <div className="absolute bottom-4 left-4 font-black text-2xl text-white drop-shadow-lg">{g.name}</div>
+                        <GlassCard 
+                            key={g.id} 
+                            onClick={() => setActiveGroupId(g.id)} 
+                            className="flex flex-col gap-0 !p-0 overflow-hidden group cursor-pointer border border-white/10 hover:border-orange-500/50 transition-all duration-500"
+                        >
+                            <div className="aspect-video w-full relative overflow-hidden bg-[#111]">
+                                {g.image ? (
+                                    <img src={g.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-black">
+                                        <Icons.Vote className="w-16 h-16 text-white/10" />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent group-hover:via-transparent transition-all duration-500" />
+                                
+                                <div className="absolute bottom-0 left-0 p-6 w-full">
+                                    <h3 className="font-display font-black text-3xl text-white drop-shadow-lg translate-y-1 group-hover:translate-y-0 transition-transform">{g.name}</h3>
+                                    <p className="text-gray-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity delay-100 flex items-center gap-2 mt-1">
+                                        <span>{g.people.length} Candidates</span>
+                                        <Icons.ArrowRight className="w-4 h-4 text-orange-500" />
+                                    </p>
+                                </div>
                             </div>
                         </GlassCard>
                     ))}
-                    {groups.length === 0 && !loading && <div className="col-span-full text-center py-10 text-gray-500">{t('noResults')}</div>}
+                    {groups.length === 0 && !loading && (
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500 gap-2">
+                            <Icons.SearchX className="w-12 h-12 opacity-50" />
+                            <p>{t('noResults')}</p>
+                        </div>
+                    )}
                 </div>
                 <AnimatePresence>{showGroupTools && <VoteGroupToolsModal onClose={() => setShowGroupTools(false)} />}</AnimatePresence>
             </div>
         );
     }
 
+    // --- CANDIDATE VOTING VIEW ---
     return (
-        <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative min-h-[600px]">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex-1 flex justify-start"><button onClick={() => setActiveGroupId(null)} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full flex items-center gap-2 text-white hover:bg-white/10"><Icons.ArrowLeft className={`w-4 h-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} /> {t('return')}</button></div>
-                <div className="flex-1 text-center"><h2 className="text-3xl font-black text-white">{activeGroup?.name}</h2></div>
-                <div className="flex-1 flex justify-end">{isAdmin && (<button onClick={() => setShowTools(true)} className="px-4 py-2 bg-orange-500 rounded-full font-bold text-white shadow-lg flex items-center gap-2 hover:bg-orange-600"><Icons.Settings className="w-4 h-4" /> {t('tools')}</button>)}</div>
+        <div className="w-full max-w-[1800px] mx-auto flex flex-col gap-8 relative min-h-[600px] px-2">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md sticky top-0 z-40">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <button 
+                        onClick={() => setActiveGroupId(null)} 
+                        className="w-10 h-10 bg-black/20 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors border border-white/5"
+                    >
+                        <Icons.ArrowLeft className={`w-5 h-5 text-white ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div>
+                        <h2 className="text-2xl font-black text-white leading-none">{activeGroup?.name}</h2>
+                        <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">{t('voteFor')} your favorite</span>
+                    </div>
+                </div>
+                
+                {isAdmin && (
+                    <motion.button 
+                        onClick={() => setShowTools(true)} 
+                        className="px-5 py-2.5 bg-orange-600 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 hover:bg-orange-700 transition-all ml-auto md:ml-0"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <Icons.Settings className="w-5 h-5" /> 
+                        <span>Manage Candidates</span>
+                    </motion.button>
+                )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 px-4 perspective-container pb-12">
+            {/* Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-12">
                 {activeGroup?.people.map(person => {
-                    // Map API Person to UI structure
-                    const uiChar: VoteCharacter = {
-                        ...person,
-                        // If roles/ranks aren't supported by API, we omit them from the object but the 3DCard handles undefined gracefully
-                    };
+                    const uiChar: VoteCharacter = { ...person };
                     return (
                         <Vote3DCard 
                             key={person.id} 
                             char={uiChar} 
                             votes={person.votes} 
                             onVote={handleVote} 
-                            cooldownActive={false} // Global cooldowns removed as per API capabilities
+                            cooldownActive={false} 
                             rank={0} 
                             locked={false} 
                             justVoted={false} 
@@ -123,8 +180,13 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                     );
                 })}
             </div>
-            <AnimatePresence>{showTools && activeGroup && <AdminToolsModal onClose={() => setShowTools(false)} candidates={activeGroup.people} groupId={activeGroupId} />}</AnimatePresence>
-            <AnimatePresence>{showDiscordModal && <DiscordInfoModal social={showDiscordModal} onClose={() => setShowDiscordModal(null)} />}</AnimatePresence>
+
+            <AnimatePresence>
+                {showTools && activeGroup && <AdminToolsModal onClose={() => setShowTools(false)} candidates={activeGroup.people} groupId={activeGroupId} />}
+            </AnimatePresence>
+            <AnimatePresence>
+                {showDiscordModal && <DiscordInfoModal social={showDiscordModal} onClose={() => setShowDiscordModal(null)} />}
+            </AnimatePresence>
         </div>
     );
 };

@@ -1,5 +1,32 @@
-
 import { Thread, ImageData, LinkData, CreditPerson, MapObjectItem, MapObjectGroup, VoteCharacter } from '../types';
+
+export const defaultStreamersList = [
+    "https://kick.com/2mzx", "https://kick.com/twlf", "https://kick.com/i3mmar", "https://kick.com/almullaa8", 
+    "https://kick.com/RealWeEp", "https://kick.com/i_dom", "https://kick.com/haibtking", "https://kick.com/otnxx", 
+    "https://kick.com/ysad", "https://kick.com/xtroet", "https://kick.com/iica", "https://kick.com/azeez", 
+    "https://kick.com/nkstr", "https://kick.com/saad", "https://kick.com/mahasnco", "https://kick.com/ckiv", 
+    "https://kick.com/abuswe7l", "https://kick.com/okhaledx", "https://kick.com/majah92", "https://kick.com/i3sw", 
+    "https://kick.com/brof2", "https://kick.com/abokyan", "https://kick.com/rpwy", "https://kick.com/7omah", 
+    "https://kick.com/fahad", "https://kick.com/virus", "https://kick.com/mo7agame", "https://kick.com/itsog", 
+    "https://kick.com/sxb", "https://kick.com/xeid", "https://kick.com/alneratzory", "https://kick.com/azzz", 
+    "https://kick.com/1mlr", "https://kick.com/00_2", "https://kick.com/cREAD", "https://kick.com/YSMO", 
+    "https://kick.com/xMussad", "https://kick.com/hnodyy", "https://kick.com/OSAMAH", "https://kick.com/1SBS", 
+    "https://kick.com/iABS", "https://kick.com/JASER", "https://kick.com/L1ith", "https://kick.com/frl", 
+    "https://kick.com/mody", "https://kick.com/jntel", "https://kick.com/molo101", "https://kick.com/rchx", 
+    "https://kick.com/DRAXR", "https://kick.com/iiklaus", "https://kick.com/c2mmm", "https://kick.com/lirx", 
+    "https://kick.com/alfhdyQ8", "https://kick.com/s6mito", "https://kick.com/ghed", "https://kick.com/rareFAISAL", 
+    "https://kick.com/1Rwi", "https://kick.com/IBrahem", "https://kick.com/JustCARRY", "https://kick.com/DrFx", 
+    "https://kick.com/mjod1", "https://kick.com/imeshari4", "https://kick.com/mjrm", "https://kick.com/xlxwi", 
+    "https://kick.com/eqgle", "https://kick.com/z7lion", "https://kick.com/Zeeyadx", "https://kick.com/Mesh7", 
+    "https://kick.com/tmnaa", "https://kick.com/inq", "https://kick.com/brg2022", "https://kick.com/akoma1", 
+    "https://kick.com/szlw", "https://kick.com/foraziz", "https://kick.com/kingsoul", "https://kick.com/klo25", 
+    "https://kick.com/muvxn", "https://kick.com/IAbdullahh", "https://kick.com/1saq", "https://kick.com/Carizmaa", 
+    "https://kick.com/im911", "https://kick.com/fawaz", "https://kick.com/stafks", "https://kick.com/oflag", 
+    "https://kick.com/welly_20", "https://kick.com/ab2dy", "https://kick.com/Vilon", "https://kick.com/basamlv", 
+    "https://kick.com/iabo3abd", "https://kick.com/d7mx", "https://kick.com/sult", "https://kick.com/1zaro", 
+    "https://kick.com/vSaleh", "https://kick.com/dark12", "https://kick.com/yMT3B", "https://kick.com/ABOMISHAL", 
+    "https://kick.com/FFIGHTER", "https://kick.com/drakOola", "https://kick.com/bigboss", "https://kick.com/2abo3abd"
+];
 
 export const mapObjectsData: MapObjectItem[] = [
   {

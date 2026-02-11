@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, imagesData, appConfig } from '../../constants';
 import { ImageData, ImageCategory } from '../../types';
@@ -40,12 +39,16 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [deleteConfirmImg, setDeleteConfirmImg] = useState<ImageData | null>(null);
 
+    // Scroll to top on mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     const allImages = useMemo(() => {
         return [...imagesData, ...dynamicImages];
     }, [dynamicImages]);
 
     const displayImages = useMemo(() => {
-        // If in category mode and a category is active, filter by category tags
         if (viewMode === 'categories' && activeCategory) {
             return allImages.filter(img => img.tags.some(tag => activeCategory.tags.includes(tag)));
         }
