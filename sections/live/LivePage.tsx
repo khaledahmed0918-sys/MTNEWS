@@ -5,8 +5,26 @@ import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { Streamer } from '../../types';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { AddStreamerModal, StreamerDetailModal, StreamerCard, AdminLiveToolsModal, AdminEditStreamerModal } from './LiveComponents';
+import { AddStreamerModal, StreamerDetailModal, StreamerCard, AdminLiveToolsModal } from './LiveComponents';
 import { LiveProvider, useLive } from '../../contexts/LiveContext';
+
+// --- Skeleton Component for Grid ---
+const SkeletonGrid = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {Array.from({ length: 8 }).map((_, i) => (
+            <GlassCard key={i} className="flex flex-col !p-0 overflow-hidden h-full border border-white/5 opacity-50">
+                <div className="h-28 w-full bg-white/5 animate-pulse" />
+                <div className="px-4 pb-4 flex-1 flex flex-col gap-3 mt-4">
+                    <div className="flex gap-4 items-end -mt-10">
+                        <div className="w-16 h-16 rounded-xl bg-white/10 animate-pulse border-4 border-[#1a1a1a]" />
+                    </div>
+                    <div className="h-4 w-3/4 bg-white/10 rounded animate-pulse" />
+                    <div className="h-3 w-1/2 bg-white/5 rounded animate-pulse" />
+                </div>
+            </GlassCard>
+        ))}
+    </div>
+);
 
 const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled, isAdmin }) => {
     const { t, dir } = useI18n();
@@ -17,16 +35,14 @@ const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
     const [showAdminTools, setShowAdminTools] = useState(false);
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
 
+    // Optimized filtering: Memoize the result
     const filteredStreamers = useMemo(() => {
-        let list = [...streamers];
-        if (search.trim()) {
-            const q = search.toLowerCase();
-            list = list.filter(s => 
-                (s.kickUsername || '').toLowerCase().includes(q) || 
-                (s.tags || []).some(tag => tag.toLowerCase().includes(q))
-            );
-        }
-        return list; // Sorting is handled in Context for efficiency
+        if (!search.trim()) return streamers;
+        const q = search.toLowerCase();
+        return streamers.filter(s => 
+            (s.kickUsername || '').toLowerCase().includes(q) || 
+            (s.tags || []).some(tag => tag.toLowerCase().includes(q))
+        );
     }, [streamers, search]);
 
     const handleDeleteLocal = async () => {
@@ -57,11 +73,19 @@ const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                 </div>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <AnimatePresence>
+            {/* Content Area */}
+            {loading && streamers.length === 0 ? (
+                <SkeletonGrid />
+            ) : filteredStreamers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
+                    <Icons.Tv className="w-20 h-20 mb-4 text-gray-500" />
+                    <h3 className="text-xl font-bold text-white">{t('noStreamers')}</h3>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {/* Note: Removed <AnimatePresence> and layout prop for performance on large lists */}
                     {filteredStreamers.map(streamer => (
-                        <motion.div key={streamer.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', damping: 25 }}>
+                        <div key={streamer.id} className="h-full">
                             <StreamerCard 
                                 streamer={streamer} 
                                 onClick={() => setSelectedStreamer(streamer)} 
@@ -69,13 +93,9 @@ const LivePageContent: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                                 onToggleNotify={toggleNotify} 
                                 snowEnabled={snowEnabled} 
                             />
-                        </motion.div>
+                        </div>
                     ))}
-                </AnimatePresence>
-            </div>
-            
-            {filteredStreamers.length === 0 && !loading && (
-                <div className="flex flex-col items-center justify-center py-20 text-center opacity-60"><Icons.Tv className="w-20 h-20 mb-4 text-gray-500" /><h3 className="text-xl font-bold text-white">{t('noStreamers')}</h3></div>
+                </div>
             )}
 
             {/* Modals */}

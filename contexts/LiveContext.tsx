@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { Streamer, KickChannelInfo, KickStreamInfo } from '../types';
 import { useLocalStorage } from '../hooks';
@@ -73,6 +74,10 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [loading, setLoading] = useState(true);
     const [lastAction, setLastAction] = useState<{ type: string, description: string, payload: any } | null>(null);
     const isRefreshing = useRef(false);
+    
+    // Performance: Mutable Ref to hold data before batching to state
+    const streamersBuffer = useRef<Map<string, Streamer>>(new Map());
+    const needsUpdate = useRef(false);
 
     // Browser Notification Request
     useEffect(() => {
@@ -82,52 +87,60 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     // Helper: Sort Streamers
-    // Logic: Favorites -> Live -> Viewers -> Loaded (Offline) -> Loading (Skeleton)
     const sortStreamers = useCallback((list: Streamer[]) => {
         return list.sort((a, b) => {
-            // 1. Favorites
             if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
-            
-            // 2. Live Status
             const aLive = a.streamData?.is_live || false;
             const bLive = b.streamData?.is_live || false;
             if (aLive !== bLive) return aLive ? -1 : 1;
-            
-            // 3. Viewers (if both live)
             if (aLive && bLive) return (b.streamData?.viewers || 0) - (a.streamData?.viewers || 0);
-
-            // 4. Data Loaded Status (Loaded > Loading)
             const aLoaded = !!a.kickData;
             const bLoaded = !!b.kickData;
             if (aLoaded !== bLoaded) return aLoaded ? -1 : 1;
-
-            // 5. Default
             return 0;
         });
     }, []);
+
+    // --- BATCH UPDATER ---
+    // This effect runs periodically to flush the buffer to React state
+    // preventing 100s of re-renders per minute
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (needsUpdate.current) {
+                setStreamers(prev => {
+                    const currentList = Array.from(streamersBuffer.current.values());
+                    return sortStreamers(currentList);
+                });
+                needsUpdate.current = false;
+            }
+        }, 1000); // Update UI max once every second
+        return () => clearInterval(interval);
+    }, [sortStreamers]);
 
     // --- MAIN REFRESH LOGIC ---
     const refreshStreamers = useCallback(async () => {
         if (isRefreshing.current) return;
         isRefreshing.current = true;
         
-        // Only show main loader on VERY first load if empty
-        if (streamers.length === 0) setLoading(true);
+        if (streamersBuffer.current.size === 0) setLoading(true);
 
         // 1. Build Definition Map (Source of Truth)
-        const definitionMap = new Map<string, Partial<Streamer>>();
-
+        // We update the Buffer, not the State directly yet
+        
         // A. Local (Priority)
         localStreamers.forEach(l => {
-            definitionMap.set(l.kickUsername.toLowerCase(), { ...l, isSystem: false });
+            const key = l.kickUsername.toLowerCase();
+            const existing = streamersBuffer.current.get(key);
+            // Preserve loaded data if exists
+            streamersBuffer.current.set(key, { ...l, isSystem: false, kickData: existing?.kickData, streamData: existing?.streamData });
         });
 
         // B. Defaults
         defaultStreamersList.forEach(userUrl => {
             const username = userUrl.split('/').pop()!;
             const key = username.toLowerCase();
-            if (!definitionMap.has(key)) {
-                definitionMap.set(key, {
+            if (!streamersBuffer.current.has(key)) {
+                streamersBuffer.current.set(key, {
                     id: `sys-${username}`,
                     kickUsername: username,
                     tags: ['MT'],
@@ -150,8 +163,8 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const globals = await res.json();
                 globals.forEach((g: any) => {
                     const key = g.username.toLowerCase();
-                    if (!definitionMap.has(key)) {
-                        definitionMap.set(key, {
+                    if (!streamersBuffer.current.has(key)) {
+                        streamersBuffer.current.set(key, {
                             id: `global-${g.username}`,
                             kickUsername: g.username,
                             tags: g.tags || [],
@@ -169,36 +182,21 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         } catch (e) { /* silent fail */ }
 
-        // 2. Merge with Current State (Preserve loaded data!)
-        let queue: Streamer[] = [];
-        
-        setStreamers(prev => {
-            const mergedList = Array.from(definitionMap.values()).map(def => {
-                const existing = prev.find(p => p.kickUsername.toLowerCase() === def.kickUsername!.toLowerCase());
-                if (existing) {
-                    // Preserve fetched data, only update config
-                    return { ...existing, ...def, kickData: existing.kickData, streamData: existing.streamData } as Streamer;
-                }
-                // New item (Skeleton)
-                return def as Streamer;
-            });
-            
-            queue = [...mergedList]; // Process all
-            return sortStreamers(mergedList);
-        });
+        // Initial Flush to ensure skeletons are visible
+        needsUpdate.current = true;
+        setLoading(false);
 
-        setLoading(false); // UI shows list (maybe skeletons mixed in)
-
-        // 3. Queue Processing (Faster Concurrency)
-        const CONCURRENCY_LIMIT = 8; // Increased speed
+        // 2. Queue Processing
+        const CONCURRENCY_LIMIT = 5; 
+        const queue = Array.from(streamersBuffer.current.values());
         let activeRequests = 0;
 
         const processItem = async (streamer: Streamer) => {
-            // Fetch Data
             const newData = await fetchKickDataInfiniteRetry(streamer.kickUsername);
             
             // Notification Logic
-            const wasLive = streamer.streamData?.is_live || false;
+            const inBuffer = streamersBuffer.current.get(streamer.kickUsername.toLowerCase());
+            const wasLive = inBuffer?.streamData?.is_live || false;
             const isLive = newData.streamData.is_live;
             
             if (streamer.notificationsEnabled && !wasLive && isLive) {
@@ -210,21 +208,17 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }
 
-            // Update State & Re-sort immediately
-            setStreamers(prev => {
-                const updated = prev.map(s => {
-                    if (s.kickUsername.toLowerCase() === streamer.kickUsername.toLowerCase()) {
-                        return { 
-                            ...s, 
-                            kickData: newData.kickData, 
-                            streamData: newData.streamData, 
-                            lastUpdated: Date.now() 
-                        };
-                    }
-                    return s;
+            // Update Buffer
+            const currentItem = streamersBuffer.current.get(streamer.kickUsername.toLowerCase());
+            if (currentItem) {
+                streamersBuffer.current.set(streamer.kickUsername.toLowerCase(), {
+                    ...currentItem,
+                    kickData: newData.kickData,
+                    streamData: newData.streamData,
+                    lastUpdated: Date.now()
                 });
-                return sortStreamers(updated);
-            });
+                needsUpdate.current = true; // Signal for next flush
+            }
         };
 
         const next = () => {
@@ -246,11 +240,10 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         next();
 
-    }, [localStreamers, sortStreamers]);
+    }, [localStreamers]);
 
     useEffect(() => {
         refreshStreamers();
-        // Update every 3 minutes (180000ms) as requested
         const interval = setInterval(() => {
             isRefreshing.current = false; 
             refreshStreamers();
@@ -267,36 +260,40 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s);
             }
             // If it's a system streamer, add copy to local to persist favorite
-            const sys = streamers.find(s => s.id === id);
+            // We need to find it from current state/buffer
+            const sys = Array.from(streamersBuffer.current.values()).find(s => s.id === id);
             if (sys) {
                 return [...prev, { ...sys, isFavorite: !sys.isFavorite, isSystem: false }];
             }
             return prev;
         });
         
-        // Optimistic Update & Resort
-        setStreamers(prev => {
-            const updated = prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s);
-            return sortStreamers(updated);
-        });
+        // Optimistic Update in Buffer
+        const s = Array.from(streamersBuffer.current.values()).find(s => s.id === id);
+        if (s) {
+            s.isFavorite = !s.isFavorite;
+            streamersBuffer.current.set(s.kickUsername.toLowerCase(), s);
+            needsUpdate.current = true;
+        }
     };
 
     const toggleNotify = (id: string) => {
-        if (Notification.permission !== "granted") {
-            Notification.requestPermission();
-        }
+        if (Notification.permission !== "granted") Notification.requestPermission();
+        
         setLocalStreamers(prev => {
             const exists = prev.find(s => s.id === id);
-            if (exists) {
-                return prev.map(s => s.id === id ? { ...s, notificationsEnabled: !s.notificationsEnabled } : s);
-            }
-            const sys = streamers.find(s => s.id === id);
-            if (sys) {
-                return [...prev, { ...sys, notificationsEnabled: !sys.notificationsEnabled, isSystem: false }];
-            }
+            if (exists) return prev.map(s => s.id === id ? { ...s, notificationsEnabled: !s.notificationsEnabled } : s);
+            const sys = Array.from(streamersBuffer.current.values()).find(s => s.id === id);
+            if (sys) return [...prev, { ...sys, notificationsEnabled: !sys.notificationsEnabled, isSystem: false }];
             return prev;
         });
-        setStreamers(prev => prev.map(s => s.id === id ? { ...s, notificationsEnabled: !s.notificationsEnabled } : s));
+
+        const s = Array.from(streamersBuffer.current.values()).find(s => s.id === id);
+        if (s) {
+            s.notificationsEnabled = !s.notificationsEnabled;
+            streamersBuffer.current.set(s.kickUsername.toLowerCase(), s);
+            needsUpdate.current = true;
+        }
     };
 
     const addLocalStreamer = (s: Streamer) => {
@@ -311,6 +308,11 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!isSystem) {
             setLocalStreamers(prev => prev.filter(s => s.id !== id));
             setLastAction({ type: 'delete', description: `Deleted ${kickUsername}`, payload: localStreamers.find(s => s.id === id) });
+            // Remove from buffer if it was local only
+            if (!defaultStreamersList.some(u => u.toLowerCase().includes(kickUsername.toLowerCase()))) {
+                streamersBuffer.current.delete(kickUsername.toLowerCase());
+                needsUpdate.current = true;
+            }
         }
     };
 

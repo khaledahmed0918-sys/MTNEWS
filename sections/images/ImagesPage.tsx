@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, imagesData, appConfig } from '../../constants';
@@ -10,6 +11,8 @@ import { LazyImageCard } from './LazyImageCard';
 import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, AdminPendingRequestsModal } from '../../components/modals/MediaModals';
 import { CategoryAdminModal, CategoryCard } from './ImageCategoryComponents';
 import { ConfirmDeleteModal } from '../../components/modals/ConfirmationModals';
+
+const PAGE_SIZE = 24;
 
 const NoResults: React.FC = () => {
     const { t } = useI18n();
@@ -26,67 +29,67 @@ const NoResults: React.FC = () => {
 export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
     const { dynamicImages, categories, requests, loading, deleteImage } = useImages(); 
+    
+    // UI State
     const [viewMode, setViewMode] = useState<'all' | 'categories'>('all');
     const [activeCategory, setActiveCategory] = useState<ImageCategory | null>(null);
     const [search, setSearch] = useState('');
     const [filterMode, setFilterMode] = useState<'contains' | 'excludes'>('contains');
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    
+    // Modal State
     const [modalData, setModalData] = useState<{url: string, title: string} | null>(null);
-    const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-    const [retrySession, setRetrySession] = useState(0);
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [showCategoryTool, setShowCategoryTool] = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [deleteConfirmImg, setDeleteConfirmImg] = useState<ImageData | null>(null);
+    const [retrySession, setRetrySession] = useState(0);
 
     // Scroll to top on mount
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
 
+    // Combine Data
     const allImages = useMemo(() => {
         return [...imagesData, ...dynamicImages];
     }, [dynamicImages]);
 
-    const displayImages = useMemo(() => {
-        if (viewMode === 'categories' && activeCategory) {
-            return allImages.filter(img => img.tags.some(tag => activeCategory.tags.includes(tag)));
-        }
-        return allImages;
-    }, [allImages, viewMode, activeCategory]);
-
+    // Filtering Logic
     const filteredImages = useMemo(() => {
-        let items = displayImages;
-        const searchTerms = search.split(/[,،]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
+        let items = allImages;
 
+        // 1. Category Filter
+        if (viewMode === 'categories' && activeCategory) {
+            items = items.filter(img => img.tags.some(tag => activeCategory.tags.includes(tag)));
+        }
+
+        // 2. Search/Tag Filter
+        const searchTerms = search.split(/[,،]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
         if (searchTerms.length > 0) {
             items = items.filter(img => {
                 const imgTags = img.tags.map(t => t.toLowerCase());
                 const matches = searchTerms.some(term => imgTags.some(tag => tag.includes(term)));
-                
-                if (filterMode === 'contains') {
-                    return matches;
-                } else {
-                    return !matches;
-                }
+                return filterMode === 'contains' ? matches : !matches;
             });
         }
         return items;
-    }, [search, filterMode, displayImages]);
+    }, [allImages, viewMode, activeCategory, search, filterMode]);
 
-    const handleImageError = useCallback((id: string, isError: boolean) => {
-        setFailedImages(prev => {
-            const next = new Set(prev);
-            if (isError) next.add(id);
-            else next.delete(id);
-            return next;
-        });
-    }, []);
+    // Pagination Logic
+    const displayedImages = useMemo(() => {
+        return filteredImages.slice(0, visibleCount);
+    }, [filteredImages, visibleCount]);
 
-    const handleReloadAll = () => {
-        setRetrySession(prev => prev + 1);
-        setFailedImages(new Set()); 
+    const handleLoadMore = () => {
+        setVisibleCount(prev => prev + PAGE_SIZE);
     };
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setVisibleCount(PAGE_SIZE);
+    }, [search, viewMode, activeCategory]);
 
     const handleDeleteClick = (e: React.MouseEvent, img: ImageData) => {
         e.stopPropagation();
@@ -99,6 +102,10 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         if (!deleteConfirmImg) return;
         await deleteImage(deleteConfirmImg.id);
         setDeleteConfirmImg(null);
+    };
+
+    const handleReloadAll = () => {
+        setRetrySession(prev => prev + 1);
     };
 
     return (
@@ -161,7 +168,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                         whileTap={{ scale: 0.95 }}
                                     >
                                         <Icons.Clock className="w-5 h-5" />
-                                        <span className="hidden md:inline">Pending Requests</span>
+                                        <span className="hidden md:inline">Requests</span>
                                         {requests.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border border-black shadow-sm">{requests.length}</span>}
                                     </motion.button>
                                 )}
@@ -172,7 +179,6 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                     whileTap={{ scale: 0.95 }}
                                 >
                                     <Icons.Layers className="w-5 h-5" />
-                                    <span className="hidden md:inline">{t('categoriesTool')}</span>
                                 </motion.button>
                                 <motion.button
                                     onClick={() => setShowAdminModal(true)}
@@ -181,29 +187,14 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                     whileTap={{ scale: 0.95 }}
                                 >
                                     <Icons.Edit className="w-5 h-5" />
-                                    <span className="hidden md:inline">{t('addEditImages')}</span>
                                 </motion.button>
                             </div>
                          )}
-
-                        <AnimatePresence>
-                            {failedImages.size > 0 && (
-                                <motion.button
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    onClick={handleReloadAll}
-                                    className="px-4 py-2 bg-red-500/10 border border-red-500/50 text-red-500 rounded-full font-bold flex items-center gap-2 hover:bg-red-500 hover:text-white transition-colors whitespace-nowrap"
-                                >
-                                    <Icons.Refresh className="w-4 h-4" />
-                                    <span>{t('reloadAll')} ({failedImages.size})</span>
-                                </motion.button>
-                            )}
-                        </AnimatePresence>
+                         <motion.button onClick={handleReloadAll} className="px-4 py-3 bg-white/5 rounded-full text-white hover:bg-white/10 border border-white/10"><Icons.Refresh className="w-5 h-5" /></motion.button>
                     </div>
                 </div>
 
-                {/* Main View Switcher - Premium Design */}
+                {/* Main View Switcher */}
                 <div className="flex justify-center md:justify-start">
                     <div className="bg-black/40 p-1.5 rounded-full flex relative border border-white/10 backdrop-blur-xl shadow-2xl min-w-[300px]">
                         {['all', 'categories'].map((mode) => (
@@ -227,15 +218,6 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                         ))}
                     </div>
                 </div>
-
-                <AnimatePresence>
-                    {search.trim() !== '' && filteredImages.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-4 justify-center">
-                             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
-                             <span className="text-gray-400 font-bold text-sm tracking-wide">{filteredImages.length} {t('imagesFound')}</span>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
              </div>
 
              <AnimatePresence mode="wait">
@@ -262,21 +244,38 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                 </div>
                             </div>
                         )}
-                        {loading && filteredImages.length === 0 ? (
-                            <div className="flex justify-center py-20"><Icons.Loader2 className="w-12 h-12 animate-spin text-orange-500" /></div>
-                        ) : filteredImages.length > 0 ? (
+                        
+                        {loading && displayedImages.length === 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {filteredImages.map(img => (
-                                    <LazyImageCard 
-                                        key={img.id} 
-                                        img={img} 
-                                        onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
-                                        onErrorChange={handleImageError}
-                                        retryKey={retrySession}
-                                        onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
-                                    />
+                                {Array.from({length:8}).map((_,i) => (
+                                    <div key={i} className="aspect-[3/4] bg-white/5 rounded-2xl animate-pulse border border-white/5"></div>
                                 ))}
                             </div>
+                        ) : displayedImages.length > 0 ? (
+                            <>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {displayedImages.map(img => (
+                                        <LazyImageCard 
+                                            key={img.id} 
+                                            img={img} 
+                                            onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
+                                            onErrorChange={() => {}}
+                                            retryKey={retrySession}
+                                            onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
+                                        />
+                                    ))}
+                                </div>
+                                {visibleCount < filteredImages.length && (
+                                    <div className="flex justify-center py-8">
+                                        <button 
+                                            onClick={handleLoadMore}
+                                            className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full font-bold text-white transition-all hover:scale-105 shadow-lg"
+                                        >
+                                            Load More ({filteredImages.length - visibleCount} remaining)
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         ) : (
                             <NoResults />
                         )}

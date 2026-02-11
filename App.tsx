@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+
+import React, { useState, useEffect, useRef, useLayoutEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Section } from './types';
-import { ADMIN_CREDENTIALS } from './constants';
+import { ADMIN_CREDENTIALS, Icons } from './constants';
 
 // Providers
 import { I18nProvider } from './contexts/I18nContext';
@@ -20,14 +21,24 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Hotbar } from './components/layout/Hotbar';
 import { HeroBackground } from './components/ui/HeroBackground';
 
-// Sections
-import { HomePage } from './sections/Home';
-import { LivePage } from './sections/live/LivePage';
-import { VotesPage } from './sections/votes/VotesPage';
-import { MapPageFull } from './sections/Map';
-import { ThreadsPage, LinksPage, CreditsPage } from './sections/Media';
-import { ImagesPage } from './sections/images/ImagesPage';
-import { LogsPage } from './sections/Logs';
+// Lazy Load Sections for Performance
+const HomePage = lazy(() => import('./sections/Home').then(module => ({ default: module.HomePage })));
+const LivePage = lazy(() => import('./sections/live/LivePage').then(module => ({ default: module.LivePage })));
+const VotesPage = lazy(() => import('./sections/votes/VotesPage').then(module => ({ default: module.VotesPage })));
+const MapPageFull = lazy(() => import('./sections/Map').then(module => ({ default: module.MapPageFull })));
+const ThreadsPage = lazy(() => import('./sections/Media').then(module => ({ default: module.ThreadsPage })));
+const LinksPage = lazy(() => import('./sections/Media').then(module => ({ default: module.LinksPage })));
+const CreditsPage = lazy(() => import('./sections/Media').then(module => ({ default: module.CreditsPage })));
+const ImagesPage = lazy(() => import('./sections/images/ImagesPage').then(module => ({ default: module.ImagesPage })));
+const LogsPage = lazy(() => import('./sections/Logs').then(module => ({ default: module.LogsPage })));
+
+// Loading Component
+const SectionLoader = () => (
+    <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Icons.Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+        <span className="text-gray-400 font-bold animate-pulse">Loading Content...</span>
+    </div>
+);
 
 // --- MAIN APP CONTENT ---
 const AppContent: React.FC = () => {
@@ -95,18 +106,24 @@ const AppContent: React.FC = () => {
 
     // Render Section Logic
     const renderSection = () => {
-        switch (activeSection) {
-            case 'Home': return <HomePage setActiveSection={setActiveSection} />;
-            case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
-            case 'Votes': return <VotesPage isAdmin={isAdmin} />;
-            // Case 'Map' is handled separately to keep it alive
-            case 'Threads': return <ThreadsPage />;
-            case 'Images': return <ImagesPage isAdmin={isAdmin} />;
-            case 'Links': return <LinksPage />;
-            case 'Credits': return <CreditsPage />;
-            case 'Logs': return <LogsPage />;
-            default: return <HomePage setActiveSection={setActiveSection} />;
-        }
+        return (
+            <Suspense fallback={<SectionLoader />}>
+                {(() => {
+                    switch (activeSection) {
+                        case 'Home': return <HomePage setActiveSection={setActiveSection} />;
+                        case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
+                        case 'Votes': return <VotesPage isAdmin={isAdmin} />;
+                        // Case 'Map' is handled separately to keep it alive
+                        case 'Threads': return <ThreadsPage />;
+                        case 'Images': return <ImagesPage isAdmin={isAdmin} />;
+                        case 'Links': return <LinksPage />;
+                        case 'Credits': return <CreditsPage />;
+                        case 'Logs': return <LogsPage />;
+                        default: return <HomePage setActiveSection={setActiveSection} />;
+                    }
+                })()}
+            </Suspense>
+        );
     };
 
     return (
@@ -132,7 +149,7 @@ const AppContent: React.FC = () => {
             >
                 {/* Content Container - Scrollable */}
                 <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-4 md:p-8 pb-32 md:pb-8">
-                    {/* Persistent Map Layer (Always mounted, hidden when inactive) */}
+                    {/* Persistent Map Layer (Always mounted, hidden when inactive to preserve WebGL context) */}
                     <div 
                         style={{ 
                             display: activeSection === 'Map' ? 'flex' : 'none', 
@@ -141,7 +158,9 @@ const AppContent: React.FC = () => {
                             flexDirection: 'column'
                         }}
                     >
-                        <MapPageFull isVisible={activeSection === 'Map'} />
+                        <Suspense fallback={<SectionLoader />}>
+                            <MapPageFull isVisible={activeSection === 'Map'} />
+                        </Suspense>
                     </div>
 
                     {/* Other Sections (Unmounted when inactive for performance) */}
