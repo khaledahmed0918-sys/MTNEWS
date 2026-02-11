@@ -12,17 +12,17 @@ import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, Ad
 import { CategoryAdminModal, CategoryCard } from './ImageCategoryComponents';
 import { ConfirmDeleteModal } from '../../components/modals/ConfirmationModals';
 
-const PAGE_SIZE = 20; // Reduced to 20 for performance
+const PAGE_SIZE = 20; 
 
 const NoResults: React.FC = () => {
     const { t } = useI18n();
     return (
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }} className="flex flex-col items-center justify-center py-24 text-gray-400 w-full">
-            <motion.div animate={{ rotate: [0, -5, 5, -5, 0], scale: [1, 1.05, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }} className="mb-6 p-6 rounded-full bg-white/5 border border-white/10">
+        <div className="flex flex-col items-center justify-center py-24 text-gray-400 w-full">
+            <div className="mb-6 p-6 rounded-full bg-white/5 border border-white/10">
                 <Icons.SearchX className="w-16 h-16 opacity-50" />
-            </motion.div>
+            </div>
             <h3 className="text-xl font-bold mb-2">{t('noResults')}</h3>
-        </motion.div>
+        </div>
     );
 };
 

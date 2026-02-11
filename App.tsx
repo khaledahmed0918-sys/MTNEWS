@@ -18,16 +18,18 @@ import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
 // Layout Components
 import { Sidebar } from './components/layout/Sidebar';
 import { Hotbar } from './components/layout/Hotbar';
-{/*import { HeroBackground } from './components/ui/HeroBackground';*/}
 
 // Lazy Load Sections for Performance
 const HomePage = lazy(() => import('./sections/Home').then(module => ({ default: module.HomePage })));
 const LivePage = lazy(() => import('./sections/live/LivePage').then(module => ({ default: module.LivePage })));
 const VotesPage = lazy(() => import('./sections/votes/VotesPage').then(module => ({ default: module.VotesPage })));
 const MapPageFull = lazy(() => import('./sections/Map').then(module => ({ default: module.MapPageFull })));
-const ThreadsPage = lazy(() => import('./sections/Media').then(module => ({ default: module.ThreadsPage })));
-const LinksPage = lazy(() => import('./sections/Media').then(module => ({ default: module.LinksPage })));
-const CreditsPage = lazy(() => import('./sections/Media').then(module => ({ default: module.CreditsPage })));
+
+// Split modules
+const ThreadsPage = lazy(() => import('./sections/Threads').then(module => ({ default: module.ThreadsPage })));
+const LinksPage = lazy(() => import('./sections/Links').then(module => ({ default: module.LinksPage })));
+const CreditsPage = lazy(() => import('./sections/Credits').then(module => ({ default: module.CreditsPage })));
+
 const ImagesPage = lazy(() => import('./sections/images/ImagesPage').then(module => ({ default: module.ImagesPage })));
 const LogsPage = lazy(() => import('./sections/Logs').then(module => ({ default: module.LogsPage })));
 
@@ -127,7 +129,6 @@ const AppContent: React.FC = () => {
 
     return (
         <div className="flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
-            {/*<HeroBackground section={activeSection} />*/}
             <SnowEffect enabled={snowEnabled} />
 
             {/* Sidebar (Desktop & Mobile) */}
@@ -167,9 +168,9 @@ const AppContent: React.FC = () => {
                         {activeSection !== 'Map' && (
                             <motion.div
                                 key={activeSection}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
+                                initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
                                 transition={{ duration: 0.3, ease: "easeOut" }}
                                 className="w-full max-w-[1600px] mx-auto min-h-full"
                             >

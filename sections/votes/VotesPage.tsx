@@ -51,12 +51,13 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         
         fetchData(controller.signal);
         
+        // OPTIMIZATION: Increased interval to 20 seconds to prevent browser freezing
         const interval = setInterval(() => {
             fetchData(controller.signal);
-        }, 5000); 
+        }, 20000); 
         
         return () => {
-            controller.abort(); // Cancel request immediately on unmount
+            controller.abort(); 
             clearInterval(interval);
         };
     }, []);
@@ -111,11 +112,11 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                         <GlassCard 
                             key={g.id} 
                             onClick={() => setActiveGroupId(g.id)} 
-                            className="flex flex-col gap-0 !p-0 overflow-hidden group cursor-pointer border border-white/10 hover:border-orange-500/50 transition-all duration-500"
+                            className="flex flex-col gap-0 !p-0 overflow-hidden group cursor-pointer border border-white/10 hover:border-orange-500/50 transition-all duration-300"
                         >
                             <div className="aspect-video w-full relative overflow-hidden bg-[#111]">
                                 {g.image ? (
-                                    <img src={g.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100" />
+                                    <img src={g.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100" loading="lazy" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-black">
                                         <Icons.Vote className="w-16 h-16 text-white/10" />
@@ -176,8 +177,8 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 )}
             </div>
             
-            {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-12">
+            {/* Grid - OPTIMIZED: Removed layout prop from Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                 {activeGroup?.people.map(person => {
                     const uiChar: VoteCharacter = { ...person };
                     return (

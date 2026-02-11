@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Icons } from '../../constants';
 import { ImageData } from '../../types';
 import { useIntersectionObserver } from '../../hooks';
@@ -25,7 +26,7 @@ export const LazyImageCard: React.FC<{
                 setHasError(false);
                 setIsLoading(true);
                 setRetryCount(prev => prev + 1);
-            }, 3000 + (retryCount * 1000)); // Backoff slightly but keep trying
+            }, 3000 + (retryCount * 1000)); 
             return () => clearTimeout(timeout);
         }
     }, [hasError, retryCount]);
@@ -49,7 +50,9 @@ export const LazyImageCard: React.FC<{
             onClick={onClick} 
             className="aspect-[3/4] rounded-2xl overflow-hidden relative group cursor-pointer border border-white/10 bg-[#121212]" 
             whileHover={{ y: -5 }}
-            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
         >
             {inView ? (
                 <>

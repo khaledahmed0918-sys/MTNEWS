@@ -66,9 +66,10 @@ export const LogsPage: React.FC = () => {
         const controller = new AbortController();
         fetchLogs(controller.signal);
         
+        // Increased to 30s to reduce load
         const interval = setInterval(() => {
             fetchLogs(controller.signal);
-        }, 5000); 
+        }, 30000); 
         
         return () => {
             controller.abort();

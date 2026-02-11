@@ -22,6 +22,18 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve('.'),
         }
+      },
+      build: {
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-core': ['react', 'react-dom'],
+                    'vendor-utils': ['framer-motion', 'lucide-react', 'firebase/app', 'firebase/database'],
+                    'vendor-maps': ['leaflet', 'react-leaflet'],
+                }
+            }
+        }
       }
     };
 });
