@@ -2,7 +2,7 @@
 export type Lang = 'en' | 'ar';
 export type Theme = 'light' | 'dark';
 
-export type Section = 'Home' | 'Map' | 'Votes' | 'Analyzing' | 'Threads' | 'Images' | 'Links' | 'Tags' | 'Credits' | 'Logs' | 'Live';
+export type Section = 'Home' | 'Map' | 'Votes' | 'Analyzing' | 'Threads' | 'Images' | 'Links' | 'Tags' | 'Credits' | 'Logs' | 'Live' | 'Clips';
 
 export interface NavItem {
   id: Section;
@@ -59,6 +59,26 @@ export interface ImageRequest {
     path: string; // from backend
     tags: string[];
     status: 'pending' | 'accepted' | 'denied';
+    createdAt: string;
+}
+
+export interface Clip {
+    id: string;
+    content: string;
+    type: 'file' | 'url';
+    path: string;
+    url: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface ClipRequest {
+    id: string;
+    content: string;
+    type: 'file' | 'url';
+    path: string;
+    url: string;
+    status: 'pending';
     createdAt: string;
 }
 

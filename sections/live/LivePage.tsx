@@ -33,21 +33,21 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
     const { requestDelete } = useGlobalActions();
     
     const [search, setSearch] = useState('');
-    const [visibleCount, setVisibleCount] = useState(10);
+    const [visibleCount, setVisibleCount] = useState(12);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showAdminRequests, setShowAdminRequests] = useState(false);
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
 
-    // Initial Load (First 10)
+    // Initial Load (First 12)
     useEffect(() => {
-        loadBatch(0, 10);
+        loadBatch(0, 12);
     }, []);
 
     const handleLoadMore = () => {
-        const nextCount = visibleCount + 10;
+        const nextCount = visibleCount + 12;
         setVisibleCount(nextCount);
-        loadBatch(visibleCount, 10); // Fetch next batch
+        loadBatch(visibleCount, 12); // Fetch next batch
     };
 
     const handleDeleteLocal = () => {

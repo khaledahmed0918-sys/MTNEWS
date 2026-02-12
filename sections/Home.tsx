@@ -15,6 +15,8 @@ const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string;
     { id: 'Live', icon: 'Tv', titleKey: 'Live', descKey: 'liveDesc', color: 'from-green-400 to-emerald-600', gradient: 'bg-gradient-to-br from-green-500/10 to-emerald-900/10' }, 
     { id: 'Votes', icon: 'Vote', titleKey: 'Votes', descKey: 'votesDesc', color: 'from-orange-400 to-red-600', gradient: 'bg-gradient-to-br from-orange-500/10 to-red-900/10' },
     { id: 'Map', icon: 'Map', titleKey: 'Map', descKey: 'mapDesc', color: 'from-blue-400 to-indigo-600', gradient: 'bg-gradient-to-br from-blue-500/10 to-indigo-900/10' },
+    { id: 'Analyzing', icon: 'Analyzing', titleKey: 'Analyzing', descKey: 'analyzingDesc', color: 'from-teal-400 to-cyan-600', gradient: 'bg-gradient-to-br from-teal-500/10 to-cyan-900/10' },
+    { id: 'Clips', icon: 'Clips', titleKey: 'Clips', descKey: 'clipsDesc', color: 'from-red-400 to-rose-600', gradient: 'bg-gradient-to-br from-red-500/10 to-rose-900/10' },
     { id: 'Images', icon: 'Images', titleKey: 'Images', descKey: 'imagesDesc', color: 'from-purple-400 to-pink-600', gradient: 'bg-gradient-to-br from-purple-500/10 to-pink-900/10' },
     { id: 'Links', icon: 'Links', titleKey: 'Links', descKey: 'linksDesc', color: 'from-cyan-400 to-blue-600', gradient: 'bg-gradient-to-br from-cyan-500/10 to-blue-900/10' },
     { id: 'Credits', icon: 'Credits', titleKey: 'Credits', descKey: 'creditsDesc', color: 'from-yellow-400 to-amber-600', gradient: 'bg-gradient-to-br from-yellow-500/10 to-amber-900/10' }
@@ -23,12 +25,12 @@ const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string;
 export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
     const { t } = useI18n();
 
-    // Optimized Animation Variants - Reduced Stagger & Removed complex transforms
+    // Optimized Animation Variants
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
         visible: { 
             opacity: 1,
-            transition: { duration: 0.4 } // Removed staggerChildren to prevent cascade paints
+            transition: { duration: 0.4 } 
         }
     };
 
@@ -48,19 +50,17 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
             variants={containerVariants}
             className="w-full flex flex-col gap-8 pb-20"
         >
-            {/* Hero Section - Highly Optimized */}
+            {/* Hero Section */}
             <motion.section 
                 variants={itemVariants}
                 className="relative w-full min-h-[35vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[32px] overflow-hidden border border-white/5 bg-[#0a0a0a]"
             >
-                {/* Static Background - Replaced heavy gradients with simple blurred divs */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                     <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[80%] bg-orange-600/10 blur-[80px] rounded-full opacity-60" />
                     <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] bg-blue-600/10 blur-[80px] rounded-full opacity-60" />
                 </div>
 
                 <div className="relative z-10 max-w-3xl flex flex-col gap-5">
-                    {/* Status Badge - Removed Backdrop Blur */}
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 w-fit">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                         <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{t('systemOnline')}</span>
@@ -68,7 +68,6 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
 
                     <h1 className="text-4xl md:text-6xl font-display font-black leading-[0.95] text-white tracking-tight">
                         THE ULTIMATE <br />
-                        {/* Removed animate-gradientBG and heavy shadow */}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">MTRP NEWS</span>
                     </h1>
 
@@ -88,7 +87,6 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                             href={appConfig.donateLink} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            // Removed backdrop-blur-md
                             className="px-6 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 border border-white/10 transition-all flex items-center gap-2"
                         >
                             <Icons.Star className="w-5 h-5 text-orange-400" />
@@ -98,7 +96,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                 </div>
             </motion.section>
 
-            {/* Quick Stats Grid - Performance Optimized */}
+            {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                     { label: t('followers'), value: '70K+', color: 'text-blue-400', bg: 'bg-blue-900/10 border-blue-500/10' },

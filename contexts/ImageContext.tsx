@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { ImageData, ImageCategory, ImageRequest } from '../types';
 import { useLocalStorage } from '../hooks';
 import { API_BASE } from '../constants';
+import { robustFetch } from '../utils/apiWrapper';
 
 interface ImageContextType {
     dynamicImages: ImageData[];
@@ -32,23 +33,19 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [myRequestIds, setMyRequestIds] = useLocalStorage<string[]>('mtnews-my-requests', []);
     const [loading, setLoading] = useState(true);
 
-    // Keep track of the abort controller for the main fetch
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    const fetchImages = useCallback(async (signal?: AbortSignal) => {
-        setLoading(true);
+    const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
-            // Fetch Images
-            const resImages = await fetch(`${API_BASE}/images`, {
-                headers: { "ngrok-skip-browser-warning": "true" },
-                signal
-            });
+            // 1. Fetch Images
+            const resImages = await robustFetch('/images', { signal, skipErrorLog: true });
             if (resImages.ok) {
                 const data = await resImages.json();
                 const mapped: ImageData[] = data.map((item: any) => {
                     let finalUrl = item.url;
+                    // Handle file paths from server
                     if (item.type === 'file' && item.path) {
-                        const cleanPath = item.path.startsWith('uploads/') ? item.path : `uploads/${item.path}`;
+                        const cleanPath = item.path.replace(/\\/g, '/'); // Fix windows paths
                         finalUrl = `${API_BASE}/${cleanPath}`;
                     }
                     return { id: item.id, url: finalUrl, tags: item.tags || [], apiType: item.type };
@@ -56,19 +53,14 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 setDynamicImages(mapped);
             }
 
-            // Fetch Categories
-            const resCats = await fetch(`${API_BASE}/icategorys`, {
-                headers: { "ngrok-skip-browser-warning": "true" },
-                signal
-            });
+            // 2. Fetch Categories (NOTE: API endpoint is /icategorys based on server code)
+            const resCats = await robustFetch('/icategorys', { signal, skipErrorLog: true });
             if(resCats.ok) {
                 setCategories(await resCats.json());
             }
 
         } catch (e: any) {
-            if (e.name !== 'AbortError') {
-                console.warn("Image/Category fetch failed", e);
-            }
+            // Ignore errors here to keep the app running, the polling will retry
         } finally {
             if (!signal?.aborted) {
                 setLoading(false);
@@ -78,165 +70,139 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const fetchRequests = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await fetch(`${API_BASE}/images/request`, {
-                headers: { "ngrok-skip-browser-warning": "true" },
-                signal
-            });
+            const res = await robustFetch('/images/request', { signal, skipErrorLog: true });
             if (res.ok) {
                 const data = await res.json();
                 const mapped: ImageRequest[] = data.map((req: any) => {
                     let finalUrl = req.url;
                     if (req.type === 'file' && req.path) {
-                         const cleanPath = req.path.startsWith('uploads/') ? req.path : `uploads/${req.path}`;
+                         const cleanPath = req.path.replace(/\\/g, '/');
                          finalUrl = `${API_BASE}/${cleanPath}`;
                     }
                     return { ...req, url: finalUrl };
                 });
                 setRequests(mapped);
             }
-        } catch (e: any) {
-            if (e.name !== 'AbortError') {
-                // Silent fail
-            }
+        } catch (e) {
+            // Silent fail
         }
     }, []);
 
-    // Initial load and cleanup on unmount
+    // Robust Polling Mechanism
     useEffect(() => {
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
 
-        fetchImages(signal);
+        // Initial Load
+        fetchData(signal);
         fetchRequests(signal);
 
-        return () => {
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
+        // Interval Polling (Every 10 seconds)
+        const intervalId = setInterval(() => {
+            if (!document.hidden) { // Only poll when tab is active to save resources
+                fetchData(signal);
+                fetchRequests(signal);
             }
+        }, 10000);
+
+        return () => {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+            clearInterval(intervalId);
         };
-    }, [fetchImages, fetchRequests]);
+    }, [fetchData, fetchRequests]);
 
-    const refreshImages = () => {
-        // Cancel previous if pending? Maybe not necessary for refresh, 
-        // but good practice if user spams refresh.
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-        abortControllerRef.current = new AbortController();
-        fetchImages(abortControllerRef.current.signal);
-    };
-
-    const refreshRequests = () => {
-        if (abortControllerRef.current) {
-             fetchRequests(abortControllerRef.current.signal);
-        } else {
-             // Fallback if controller missing (shouldn't happen if mounted)
-             fetchRequests();
-        }
-    };
+    const refreshImages = () => fetchData();
+    const refreshRequests = () => fetchRequests();
 
     const uploadImageUrl = async (url: string, tags: string, signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/upload/url`, {
+        const res = await robustFetch('/upload/url', {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "true"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url, tags }),
             signal
         });
         if (!res.ok) throw new Error("Upload failed");
-        await fetchImages(signal);
+        await fetchData(signal);
     };
 
     const uploadImageFile = async (file: File, tags: string, signal?: AbortSignal) => {
         const fd = new FormData();
         fd.append("image", file);
         fd.append("tags", tags);
-        const res = await fetch(`${API_BASE}/upload/image`, {
+        const res = await robustFetch('/upload/image', {
             method: "POST",
-            headers: { "ngrok-skip-browser-warning": "true" },
             body: fd,
             signal
         });
         if (!res.ok) throw new Error("Upload failed");
-        await fetchImages(signal);
+        await fetchData(signal);
     };
 
     const updateImageTags = async (id: string, tags: string, signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/image/${id}/tags`, {
+        const res = await robustFetch(`/image/${id}/tags`, {
             method: "PATCH",
-            headers: { 
-                "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "true"
-            },
-            body: JSON.stringify({ tags: tags.split(',').map(t => t.trim()).filter(Boolean) }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tags: tags.split(/[,،]/).map(t => t.trim()).filter(Boolean) }),
             signal
         });
         if (!res.ok) throw new Error("Update failed");
-        await fetchImages(signal);
+        await fetchData(signal);
     };
 
     const deleteImage = async (id: string, signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/image/${id}`, {
+        const res = await robustFetch(`/image/${id}`, {
             method: "DELETE",
-            headers: { "ngrok-skip-browser-warning": "true" },
             signal
         });
         if (!res.ok) throw new Error(`Delete failed`);
-        await fetchImages(signal);
+        // Optimistic update
+        setDynamicImages(prev => prev.filter(img => img.id !== id));
+        await fetchData(signal);
     };
 
     // --- CATEGORY METHODS ---
 
     const addCategory = async (name: string, tags: string[], signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/icategory/add`, {
+        const res = await robustFetch('/icategory/add', {
             method: "POST",
-            headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, tags }),
             signal
         });
         if(!res.ok) throw new Error("Failed to add category");
-        await fetchImages(signal); 
+        await fetchData(signal); 
     };
 
     const removeCategory = async (id: string, signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/icategory/remove`, {
+        const res = await robustFetch('/icategory/remove', {
             method: "POST",
-            headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id }),
             signal
         });
         if(!res.ok) throw new Error("Failed to remove category");
-        await fetchImages(signal);
+        await fetchData(signal);
     };
 
     const updateCategoryTags = async (id: string, tags: string[], signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/icategory/${id}/tags`, {
+        const res = await robustFetch(`/icategory/${id}/tags`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ tags }),
             signal
         });
         if(!res.ok) throw new Error("Failed to update category tags");
-        await fetchImages(signal);
+        await fetchData(signal);
     };
 
     // --- REQUEST METHODS ---
 
     const submitImageRequest = async (files: File[], urls: string[], tags: string, signal?: AbortSignal) => {
         const fd = new FormData();
-        const requestData: any[] = [];
-
-        // Upload files logic needs to be handled either by sending files directly or converting to URL first
-        // Based on API: POST /images/request supports files and urls
         
-        files.forEach(f => {
-            fd.append('files', f); // Assuming backend accepts array of files
-        });
+        // Backend logic in provided server code expects 'files' array and 'images' JSON string
+        files.forEach(f => fd.append('files', f));
 
-        // For this specific API implementation, we might need to send individual requests if the endpoint expects one item at a time,
-        // OR the endpoint handles bulk. Based on prompt "Add Request: support files OR urls", let's assume one request per item for safety or construct a bulk payload if backend supports it.
-        // Assuming backend handles array 'files' and 'images' metadata string
-        
         const metadata = [
             ...files.map(() => ({ type: 'file', tags })),
             ...urls.map(url => ({ type: 'url', url, tags }))
@@ -244,9 +210,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         
         fd.append('images', JSON.stringify(metadata));
 
-        const res = await fetch(`${API_BASE}/images/request`, {
+        const res = await robustFetch('/images/request', {
             method: 'POST',
-            headers: { "ngrok-skip-browser-warning": "true" },
             body: fd,
             signal
         });
@@ -257,26 +222,25 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 const newIds = data.requests.map((r: any) => r.id);
                 setMyRequestIds(prev => [...prev, ...newIds]);
             }
-            try { await fetchRequests(signal); } catch (e) {}
+            await fetchRequests(signal);
         } else {
             throw new Error("Request Submission Failed");
         }
     };
 
     const deleteImageRequest = async (requestId: string, signal?: AbortSignal) => {
-        const res = await fetch(`${API_BASE}/images/request/remove`, {
+        const res = await robustFetch('/images/request/remove', {
             method: 'POST',
-            headers: { 
-                "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "true" 
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ requestID: requestId }),
             signal
         });
 
         if (res.ok) {
             setMyRequestIds(prev => prev.filter(id => id !== requestId));
-            try { await fetchRequests(signal); } catch (e) {}
+            // Optimistic update
+            setRequests(prev => prev.filter(r => r.id !== requestId));
+            await fetchRequests(signal);
         } else {
             throw new Error("Failed to remove request");
         }

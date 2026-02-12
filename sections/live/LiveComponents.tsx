@@ -252,10 +252,6 @@ export const StreamerCard: React.FC<{
     const avatar = streamer.kickData.profile_pic || 'https://via.placeholder.com/150';
     const viewers = streamer.streamData?.viewers || 0;
     
-    // Fix Thumbnail issue: Kick provides full URL usually. Use it directly. 
-    // Add referrer policy to ensure it loads if there are hotlink protections (though Kick usually allows).
-    const thumbnail = streamer.streamData?.thumbnail;
-    
     const handleNotifyClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
         await onToggleNotify(streamer.id);
@@ -292,16 +288,16 @@ export const StreamerCard: React.FC<{
                         {streamer.customTitle && <span>• {streamer.customTitle}</span>}
                     </div>
                 </div>
-                {isLive && thumbnail ? (
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-3 border border-white/10 group-hover:border-white/30 transition-colors">
-                        <img src={thumbnail} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Icons.Play className="w-8 h-8 text-white" />
-                        </div>
+                
+                {/* Replaced Thumbnail with Stream Title when Live */}
+                {isLive ? (
+                    <div className="mb-3 min-h-[2.5em] p-2 rounded bg-white/5 border border-white/10">
+                        <p className="text-xs font-bold text-white line-clamp-2">{streamer.streamData?.title || t('streamTitle')}</p>
                     </div>
                 ) : (
                     <p className="text-xs text-gray-400 line-clamp-2 mb-3 min-h-[2.5em]">{streamer.kickData?.bio || t('noBio')}</p>
                 )}
+
                 <div className="flex flex-wrap gap-1 mb-4">
                     {streamer.tags.slice(0, 3).map((tag, i) => (
                         <span key={i} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] text-gray-400 uppercase tracking-wide">{tag}</span>

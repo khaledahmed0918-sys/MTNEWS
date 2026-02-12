@@ -11,6 +11,7 @@ import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
 import { LiveProvider } from './contexts/LiveContext';
 import { ImageProvider } from './contexts/ImageContext';
 import { ProfileProvider } from './contexts/ProfileContext';
+import { ClipProvider } from './contexts/ClipContext'; // Added
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
@@ -28,6 +29,7 @@ const LivePage = lazy(() => import('./sections/live/LivePage').then(module => ({
 const VotesPage = lazy(() => import('./sections/votes/VotesPage').then(module => ({ default: module.VotesPage })));
 const MapPageFull = lazy(() => import('./sections/Map').then(module => ({ default: module.MapPageFull })));
 const AnalyzingPage = lazy(() => import('./sections/Analyzing').then(module => ({ default: module.AnalyzingPage })));
+const ClipsPage = lazy(() => import('./sections/Clips/ClipsPage').then(module => ({ default: module.ClipsPage }))); // Added
 
 // Split modules
 const ThreadsPage = lazy(() => import('./sections/Threads').then(module => ({ default: module.ThreadsPage })));
@@ -131,8 +133,9 @@ const AppContent: React.FC = () => {
                         case 'Home': return <HomePage setActiveSection={setActiveSection} />;
                         case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
                         case 'Votes': return <VotesPage isAdmin={isAdmin} />;
-                        case 'Map': return <MapPageFull isVisible={true} />; // Only mounted if active
+                        case 'Map': return <MapPageFull isVisible={true} />; 
                         case 'Analyzing': return <AnalyzingPage />;
+                        case 'Clips': return <ClipsPage />;
                         case 'Threads': return <ThreadsPage />;
                         case 'Images': return <ImagesPage isAdmin={isAdmin} />;
                         case 'Links': return <LinksPage />;
@@ -221,9 +224,11 @@ const App: React.FC = () => {
                     <GlobalActionsLayer>
                         <ProfileProvider>
                             <LiveProvider>
-                                <ImageProvider>
-                                    <AppContent />
-                                </ImageProvider>
+                                <ClipProvider>
+                                    <ImageProvider>
+                                        <AppContent />
+                                    </ImageProvider>
+                                </ClipProvider>
                             </LiveProvider>
                         </ProfileProvider>
                     </GlobalActionsLayer>
