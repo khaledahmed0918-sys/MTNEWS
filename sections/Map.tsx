@@ -12,19 +12,6 @@ import { resolvePath } from '../utils/logging';
 
 // --- Components ---
 
-// Component to handle map resizing when visibility changes (Fix for display:none issue)
-const MapInvalidator: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
-    const map = useMap();
-    useEffect(() => {
-        if (isVisible) {
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 100);
-        }
-    }, [isVisible, map]);
-    return null;
-};
-
 // Map Controller must utilize the map instance from context or passed via ref if outside
 const MapController: React.FC<{ mapRef: React.RefObject<L.Map> }> = ({ mapRef }) => { 
     const zoomIn = () => mapRef.current?.zoomIn();
@@ -52,47 +39,40 @@ const maxBounds: L.LatLngBoundsExpression = [[-3000, -3000], [12000, 12000]]; //
 const mapUrlSvg = 'https://www.bragitoff.com/wp-content/uploads/2015/11/GTAV_ATLUS_8192x8192.png'; 
 
 export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = true }) => {
-    const { t, dir } = useI18n();
+    const { t } = useI18n();
     const [activeObjectIds, setActiveObjectIds] = useLocalStorage<string[]>('mtnews-map-objects', []);
     const [searchQuery, setSearchQuery] = useState('');
     const [highlightedMarker, setHighlightedMarker] = useState<{ item: MapObjectItem, location: MapObjectLocation } | null>(null);
     const [showObjects, setShowObjects] = useState(false);
     const [mapProgress, setMapProgress] = useState(0);
     const [mapLoaded, setMapLoaded] = useState(false);
-    const [isMapActive, setIsMapActive] = useState(false); // New: Map active state
     const mapRef = useRef<L.Map>(null);
     
-    // Simulate Loading when Activate
+    // Simulate Loading when Component Mounts
     useEffect(() => {
-        if (isMapActive) {
-            let isMounted = true;
-            const interval = setInterval(() => { 
-                if (!isMounted || mapLoaded) return; 
-                setMapProgress(prev => (prev >= 90 ? 90 : prev + 10)); 
-            }, 100);
-            
-            // Preload Image
-            const img = new Image();
-            img.src = mapUrlSvg;
-            img.onload = () => { 
-                if (!isMounted) return;
-                clearInterval(interval); 
-                setMapProgress(100); 
-                setTimeout(() => setMapLoaded(true), 200); 
-            };
-            
-            return () => { isMounted = false; clearInterval(interval); };
-        }
-    }, [isMapActive]);
+        let isMounted = true;
+        setMapLoaded(false);
+        setMapProgress(0);
 
-    // Unload when section changes
-    useEffect(() => {
-        if (!isVisible) {
-            setIsMapActive(false);
-            setMapLoaded(false);
-            setMapProgress(0);
-        }
-    }, [isVisible]);
+        const interval = setInterval(() => { 
+            if (!isMounted || mapLoaded) return; 
+            setMapProgress(prev => (prev >= 90 ? 90 : prev + 10)); 
+        }, 100);
+        
+        // Preload Image
+        const img = new Image();
+        img.src = mapUrlSvg;
+        img.onload = () => { 
+            if (!isMounted) return;
+            clearInterval(interval); 
+            setMapProgress(100); 
+            setTimeout(() => {
+                if(isMounted) setMapLoaded(true);
+            }, 200); 
+        };
+        
+        return () => { isMounted = false; clearInterval(interval); };
+    }, []);
 
     const toggleObjectId = (id: string) => { setActiveObjectIds(prev => prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]); };
     const isGroupActive = (group: MapObjectGroup) => group.objectIds.every(id => activeObjectIds.includes(id));
@@ -100,7 +80,6 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
     
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault(); setHighlightedMarker(null);
-        if(!isMapActive) return;
         const rawQuery = searchQuery.trim(); if (!rawQuery) return;
         const queries = rawQuery.split(/[,،]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
         const foundIds: string[] = []; const foundLocations: L.LatLngTuple[] = [];
@@ -128,9 +107,8 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                                 onChange={e => setSearchQuery(e.target.value)} 
                                 placeholder={t('searchMapPlaceholder')} 
                                 className="bg-transparent w-full py-4 px-4 outline-none text-white text-lg font-medium placeholder-gray-500" 
-                                disabled={!isMapActive}
                             />
-                            <button type="submit" className="bg-white/10 hover:bg-orange-500 text-white p-3 rounded-xl transition-all duration-300" disabled={!isMapActive}>
+                            <button type="submit" className="bg-white/10 hover:bg-orange-500 text-white p-3 rounded-xl transition-all duration-300">
                                 <Icons.ArrowRight className="w-5 h-5" />
                             </button>
                         </form>
@@ -141,8 +119,7 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.1 }}
                         onClick={() => setShowObjects(!showObjects)} 
-                        disabled={!isMapActive} 
-                        className={`px-5 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all shadow-xl ${!isMapActive ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`px-5 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all shadow-xl`}
                     >
                         <Icons.Filter className={`w-6 h-6 ${showObjects ? 'text-orange-500' : 'text-gray-300'}`} />
                     </motion.button>
@@ -152,31 +129,9 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
             {/* Map Container - Full Screen */}
             <div className="w-full h-full relative bg-[#0a0a0a]">
                 
-                {/* Activate Button / Overlay */}
-                {!isMapActive && (
-                    <div className="absolute inset-0 z-[600] flex flex-col items-center justify-center bg-[#0a0a0a]">
-                        {/* Beautiful Vivid Gradient Background */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#4c1d95] to-[#be185d] opacity-80"></div>
-                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-                        
-                        <motion.button 
-                            onClick={() => setIsMapActive(true)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="relative z-10 px-12 py-6 bg-white/10 backdrop-blur-xl rounded-3xl font-black text-2xl text-white shadow-[0_0_50px_rgba(255,255,255,0.2)] border border-white/30 flex items-center gap-4 hover:bg-white/20 transition-all group"
-                        >
-                            <div className="p-3 bg-white text-black rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
-                                <Icons.Map className="w-8 h-8" />
-                            </div>
-                            <span>{t('loadInteractiveMap')}</span>
-                        </motion.button>
-                        <p className="relative z-10 mt-6 text-white/70 font-medium bg-black/30 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md">{t('clickToLoadMap')}</p>
-                    </div>
-                )}
-
                 {/* Map Objects List Drawer */}
                 <AnimatePresence>
-                    {showObjects && isMapActive && (
+                    {showObjects && (
                         <motion.div 
                             initial={{ opacity: 0, x: "100%" }}
                             animate={{ opacity: 1, x: 0 }}
@@ -223,7 +178,7 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
 
                 {/* Loading State */}
                 <AnimatePresence>
-                    {isMapActive && !mapLoaded && (
+                    {!mapLoaded && (
                         <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-[500] bg-[#050505] flex flex-col items-center justify-center">
                             <div className="w-20 h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-6" />
                             <h2 className="text-2xl font-bold text-white">{t('mapLoadingTitle')}</h2>
@@ -232,7 +187,8 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                     )}
                 </AnimatePresence>
 
-                {isMapActive && (
+                {/* Actual Map Render */}
+                {mapLoaded && (
                     <>
                         <MapController mapRef={mapRef} />
                         <MapContainer 
@@ -243,13 +199,11 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                             minZoom={-5} 
                             maxZoom={5} 
                             crs={L.CRS.Simple} 
-                            // Changed background to gradient for better aesthetics
                             className="w-full h-full outline-none bg-gradient-to-b from-[#1e4b5a] to-[#0fa8d2]" 
                             zoomControl={false} 
                             attributionControl={false} 
                             preferCanvas={true}
                         >
-                            <MapInvalidator isVisible={isVisible} />
                             <ImageOverlay url={mapUrlSvg} bounds={mapBounds} />
                             {mapObjectsData.map(item => activeObjectIds.includes(item.id) && item.locations.map((loc, index) => { 
                                 const isHighlighted = highlightedMarker?.item.id === item.id && highlightedMarker?.location.x === loc.x && highlightedMarker?.location.y === loc.y; 

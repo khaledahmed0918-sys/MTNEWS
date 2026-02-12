@@ -3,8 +3,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Suppress Console Logs
-if (process.env.NODE_ENV === 'production' || true) { // Enforced as per request
+// Suppress Console Logs in production
+if (process.env.NODE_ENV === 'production') {
   const noop = () => {};
   console.log = noop;
   console.warn = noop;

@@ -16,7 +16,6 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SnowEffect } from './components/SnowEffect';
 import { AdminAuthModal } from './components/modals/AuthModals';
 import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
-import { HeroBackground } from './components/ui/HeroBackground';
 
 // Layout Components
 import { Sidebar } from './components/layout/Sidebar';
@@ -65,15 +64,6 @@ const AppContent: React.FC = () => {
 
     // Initial Auth Check & Visitor Tracking
     useEffect(() => {
-        // Clear caches logic to ensure fresh data
-        if ('caches' in window) {
-            caches.keys().then((names) => {
-                names.forEach((name) => {
-                    caches.delete(name);
-                });
-            });
-        }
-
         const hash = localStorage.getItem('mtnews-auth-hash');
         if (hash) {
             const decoded = atob(hash);
@@ -139,7 +129,7 @@ const AppContent: React.FC = () => {
                         case 'Home': return <HomePage setActiveSection={setActiveSection} />;
                         case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
                         case 'Votes': return <VotesPage isAdmin={isAdmin} />;
-                        // Case 'Map' is handled separately to keep it alive
+                        case 'Map': return <MapPageFull isVisible={true} />; // Only mounted if active
                         case 'Threads': return <ThreadsPage />;
                         case 'Images': return <ImagesPage isAdmin={isAdmin} />;
                         case 'Links': return <LinksPage />;
@@ -154,7 +144,6 @@ const AppContent: React.FC = () => {
 
     return (
         <div className="flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
-            <HeroBackground section={activeSection} />
             <SnowEffect enabled={snowEnabled} />
 
             {/* Sidebar (Desktop & Mobile) */}
@@ -175,23 +164,16 @@ const AppContent: React.FC = () => {
             >
                 {/* Content Container - Scrollable */}
                 <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-0 md:p-8 pb-32 md:pb-8">
-                    {/* Persistent Map Layer (Always mounted, hidden when inactive to preserve WebGL context) */}
-                    <div 
-                        style={{ 
-                            display: activeSection === 'Map' ? 'flex' : 'none', 
-                            height: '100%',
-                            width: '100%',
-                            flexDirection: 'column'
-                        }}
-                    >
-                        <Suspense fallback={<SectionLoader />}>
-                            <MapPageFull isVisible={activeSection === 'Map'} />
-                        </Suspense>
-                    </div>
-
-                    {/* Other Sections (Unmounted when inactive for performance) */}
-                    <AnimatePresence mode="wait">
-                        {activeSection !== 'Map' && (
+                    
+                    {/* Map Section Special Handling: Absolute fill when active */}
+                    {activeSection === 'Map' ? (
+                        <div className="absolute inset-0 z-0 flex flex-col">
+                             <Suspense fallback={<SectionLoader />}>
+                                <MapPageFull isVisible={true} />
+                            </Suspense>
+                        </div>
+                    ) : (
+                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeSection}
                                 initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
@@ -202,8 +184,8 @@ const AppContent: React.FC = () => {
                             >
                                 {renderSection()}
                             </motion.div>
-                        )}
-                    </AnimatePresence>
+                        </AnimatePresence>
+                    )}
                 </div>
                 
                 {/* Hotbar (Mobile Only) - Hidden if Sidebar is Open */}
