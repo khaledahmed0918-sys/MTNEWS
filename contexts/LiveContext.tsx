@@ -2,10 +2,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
 import { Streamer, KickChannelInfo, KickStreamInfo, StreamerRequest } from '../types';
 import { useLocalStorage } from '../hooks';
-import { defaultStreamersList } from '../constants';
+import { defaultStreamersList, API_BASE } from '../constants';
 import { logAction } from '../utils/logging';
-
-const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 interface LiveContextType {
     streamers: Streamer[];
@@ -94,7 +92,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setApiRequests(data);
             }
         } catch (e) {
-            console.error("Failed to fetch streamer requests", e);
+            console.warn("Failed to fetch streamer requests (Offline mode active)");
         }
     }, []);
 
@@ -121,7 +119,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setSystemStreamers(mapped);
             }
         } catch (e) {
-            console.error("Failed to fetch system streamers", e);
+            console.warn("Failed to fetch system streamers (Offline mode active)");
         }
     }, []);
 

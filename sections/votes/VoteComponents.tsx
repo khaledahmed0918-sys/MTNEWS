@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons } from '../../constants';
+import { Icons, API_BASE } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { VoteCharacter, SocialLink } from '../../types';
 import { GlassCard } from '../../components/ui/GlassCard';
@@ -9,11 +9,6 @@ import { AsyncButton } from '../../components/ui/AsyncButton';
 import { ImageUploadControl } from '../../components/ui/SharedInputs';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
 import { logAction } from '../../utils/logging';
-
-const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
-
-// ... (Vote3DCard Component remains unchanged from previous, keeping it for context or just exporting tools) ...
-// Since I am updating the file content, I must include the whole file content to be safe and correct.
 
 // --- VOTE CARD (OPTIMIZED PERFORMANCE) ---
 export const Vote3DCard: React.FC<{ 
@@ -167,7 +162,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
                     headers: { "ngrok-skip-browser-warning": "true" }
                 });
             },
-            undefined, // No restore for complex candidate deletion right now without storing the full object structure locally first
+            undefined, 
             'admin',
             `Deleted Candidate: ${candidateName}`
         );

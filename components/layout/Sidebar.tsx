@@ -5,6 +5,7 @@ import { Icons, navConfig } from '../../constants';
 import { Section } from '../../types';
 import { useI18n } from '../../contexts/I18nContext';
 import { useLocalStorage } from '../../hooks';
+import { useProfile } from '../../contexts/ProfileContext';
 
 interface SidebarProps {
     activeSection: Section;
@@ -44,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const { t, lang, setLang } = useI18n();
     const [isCollapsed, setIsCollapsed] = useLocalStorage('sidebar-collapsed', false);
+    const { profile, openProfileModal } = useProfile();
 
     const menuItems = navConfig.filter(item => item.enabled || (isAdmin && (item.id === 'Logs')));
 
@@ -110,8 +112,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         })}
                     </motion.div>
 
+                    {/* Profile Button */}
+                    <div className="my-2 border-t border-white/5 pt-2">
+                        <button 
+                            onClick={openProfileModal}
+                            className={`w-full flex items-center p-3 rounded-xl transition-all hover:bg-white/10 group ${isCollapsed ? 'justify-center' : 'gap-3'}`}
+                        >
+                            <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/20">
+                                {profile?.avatar ? (
+                                    <img src={profile.avatar} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center"><Icons.UserPlus className="w-4 h-4 text-gray-400" /></div>
+                                )}
+                            </div>
+                            {!isCollapsed && (
+                                <div className="text-left overflow-hidden">
+                                    <div className="text-sm font-bold text-white truncate">{profile?.name || t('createProfile')}</div>
+                                    <div className="text-xs text-gray-500 truncate">{profile ? t('changeProfile') : t('clickToCreate')}</div>
+                                </div>
+                            )}
+                        </button>
+                    </div>
+
                     {/* Bottom Controls */}
-                    <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-white/5">
+                    <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
                         <div className={`grid ${isCollapsed ? 'grid-cols-1' : 'grid-cols-3'} gap-2`}>
                             <button onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors" title="Language">
                                 <Icons.Languages className="w-5 h-5" />
@@ -178,8 +202,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 })}
                             </motion.div>
 
+                            <button 
+                                onClick={() => { openProfileModal(); toggleMobileMenu(); }}
+                                className="w-full flex items-center p-4 rounded-xl transition-all bg-white/5 mb-4 gap-3"
+                            >
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/20">
+                                    {profile?.avatar ? (
+                                        <img src={profile.avatar} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center"><Icons.UserPlus className="w-5 h-5 text-gray-400" /></div>
+                                    )}
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-lg font-bold text-white">{profile?.name || t('createProfile')}</div>
+                                    <div className="text-sm text-gray-500">{profile ? t('changeProfile') : t('clickToCreate')}</div>
+                                </div>
+                            </button>
+
                             {/* Mobile Controls */}
-                            <div className="grid grid-cols-3 gap-4 mt-6">
+                            <div className="grid grid-cols-3 gap-4 mt-2">
                                 <button onClick={() => setLang(lang === 'en' ? 'ar' : 'en')} className="p-4 rounded-2xl bg-white/5 flex items-center justify-center text-white"><Icons.Languages className="w-6 h-6" /></button>
                                 <button onClick={toggleSnow} className={`p-4 rounded-2xl flex items-center justify-center ${snowEnabled ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white'}`}><Icons.Snowflake className="w-6 h-6" /></button>
                                 <button onClick={onAdminClick} className={`p-4 rounded-2xl flex items-center justify-center ${isAdmin ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-white'}`}>{isAdmin ? <Icons.LogOut className="w-6 h-6" /> : <Icons.Lock className="w-6 h-6" />}</button>

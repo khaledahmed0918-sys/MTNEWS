@@ -1,6 +1,9 @@
 
 import { NavItem } from '../types';
 
+// --- API CONFIGURATION ---
+export const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
+
 // --- CREDENTIALS ---
 export const ADMIN_CREDENTIALS = {
     username: 'ASWAYZ3297',
@@ -20,6 +23,7 @@ export const navConfig: NavItem[] = [
   { id: 'Live', enabled: true },
   { id: 'Votes', enabled: true },
   { id: 'Map', enabled: true },
+  { id: 'Analyzing', enabled: true },
   { id: 'Threads', enabled: false },
   { id: 'Images', enabled: true },
   { id: 'Links', enabled: true },

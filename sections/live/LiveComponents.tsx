@@ -9,6 +9,7 @@ import { AsyncButton } from '../../components/ui/AsyncButton';
 import { useLive } from '../../contexts/LiveContext';
 import { useToast } from '../../contexts/NotificationContext';
 import { logAction } from '../../utils/logging';
+import { RobustImage } from '../../components/ui/RobustImage';
 
 // --- SKELETON CARD ---
 const StreamerCardSkeleton: React.FC = () => (
@@ -263,7 +264,7 @@ export const StreamerCard: React.FC<{
     return (
         <GlassCard onClick={onClick} className="flex flex-col !p-0 overflow-hidden group h-full hover:border-orange-500/50 transition-all duration-300" isSnowy={snowEnabled}>
             <div className="h-28 w-full relative bg-neutral-900">
-                <img src={banner} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                <RobustImage src={banner} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                 <div className="absolute top-3 right-3 flex gap-2">
                     <button onClick={handleNotifyClick} className={`p-1.5 rounded-full backdrop-blur-md ${streamer.notificationsEnabled ? 'bg-orange-500 text-white' : 'bg-black/40 text-gray-400 hover:text-white'}`}>
@@ -276,9 +277,9 @@ export const StreamerCard: React.FC<{
             </div>
             <div className="px-4 pb-4 relative flex-1 flex flex-col">
                 <div className="flex justify-between items-end -mt-8 mb-2">
-                    {/* Avatar: Removed border-4, added green glow when live, changed to rounded-full */}
+                    {/* Avatar: Uses RobustImage for auto-retry */}
                     <div className={`w-16 h-16 rounded-full overflow-hidden bg-black transition-shadow duration-300 ${isLive ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''} border-4 border-[#1a1a1a]`}>
-                        <img src={avatar} className="w-full h-full object-cover" />
+                        <RobustImage src={avatar} className="w-full h-full object-cover" />
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(streamer.id); }} className={`mb-1 ${streamer.isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}>
                         <Icons.Star className={`w-5 h-5 ${streamer.isFavorite ? 'fill-current' : ''}`} />
@@ -342,12 +343,14 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
             >
                 {/* Banner Header */}
                 <div className="h-64 w-full relative shrink-0">
-                    <img src={banner} className="w-full h-full object-cover" />
+                    <RobustImage src={banner} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-transparent to-transparent"></div>
                     <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 hover:bg-white/10 p-2 rounded-full transition-colors"><Icons.X className="w-6 h-6 text-white" /></button>
                     
                     <div className="absolute -bottom-10 left-8 flex items-end gap-6">
-                        <img src={profilePic} className="w-32 h-32 rounded-3xl border-4 border-neutral-900 shadow-2xl bg-black" />
+                        <div className="w-32 h-32 rounded-3xl border-4 border-neutral-900 shadow-2xl bg-black overflow-hidden">
+                            <RobustImage src={profilePic} className="w-full h-full object-cover" />
+                        </div>
                         <div className="mb-12">
                             <h2 className="text-4xl font-black text-white drop-shadow-lg">{username}</h2>
                             <div className="flex items-center gap-3">

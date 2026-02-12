@@ -1,14 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons } from '../../constants';
+import { Icons, API_BASE } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { VoteGroup, VoteCharacter, SocialLink } from '../../types';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { logAction } from '../../utils/logging';
 import { Vote3DCard, AdminToolsModal, VoteGroupToolsModal, DiscordInfoModal } from './VoteComponents';
-
-const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
@@ -40,7 +38,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 }
             }
         } catch (e: any) {
-            if (e.name !== 'AbortError') console.error(e);
+            if (e.name !== 'AbortError') console.warn("Vote data fetch failed (Backend might be offline)");
         } finally {
             if (!signal?.aborted) setLoading(false);
         }
@@ -82,7 +80,9 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             });
             logAction('vote', `Voted for ${name}`, `Group: ${activeGroup?.name}`);
             fetchData(); 
-        } catch (e) {}
+        } catch (e) {
+            console.error("Vote failed");
+        }
     };
 
     // --- GROUP SELECTION VIEW ---
@@ -177,7 +177,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 )}
             </div>
             
-            {/* Grid - OPTIMIZED: Removed layout prop from Cards */}
+            {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                 {activeGroup?.people.map(person => {
                     const uiChar: VoteCharacter = { ...person };

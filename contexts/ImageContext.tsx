@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { ImageData, ImageCategory, ImageRequest } from '../types';
 import { useLocalStorage } from '../hooks';
+import { API_BASE } from '../constants';
 
 interface ImageContextType {
     dynamicImages: ImageData[];
@@ -23,8 +24,6 @@ interface ImageContextType {
 }
 
 const ImageContext = createContext<ImageContextType | null>(null);
-
-const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [dynamicImages, setDynamicImages] = useState<ImageData[]>([]);
@@ -68,7 +67,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         } catch (e: any) {
             if (e.name !== 'AbortError') {
-                console.error("Image fetch failed", e);
+                console.warn("Image/Category fetch failed", e);
             }
         } finally {
             if (!signal?.aborted) {

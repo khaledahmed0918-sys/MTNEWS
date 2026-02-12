@@ -10,6 +10,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
 import { LiveProvider } from './contexts/LiveContext';
 import { ImageProvider } from './contexts/ImageContext';
+import { ProfileProvider } from './contexts/ProfileContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
@@ -26,6 +27,7 @@ const HomePage = lazy(() => import('./sections/Home').then(module => ({ default:
 const LivePage = lazy(() => import('./sections/live/LivePage').then(module => ({ default: module.LivePage })));
 const VotesPage = lazy(() => import('./sections/votes/VotesPage').then(module => ({ default: module.VotesPage })));
 const MapPageFull = lazy(() => import('./sections/Map').then(module => ({ default: module.MapPageFull })));
+const AnalyzingPage = lazy(() => import('./sections/Analyzing').then(module => ({ default: module.AnalyzingPage })));
 
 // Split modules
 const ThreadsPage = lazy(() => import('./sections/Threads').then(module => ({ default: module.ThreadsPage })));
@@ -130,6 +132,7 @@ const AppContent: React.FC = () => {
                         case 'Live': return <LivePage snowEnabled={snowEnabled} isAdmin={isAdmin} />;
                         case 'Votes': return <VotesPage isAdmin={isAdmin} />;
                         case 'Map': return <MapPageFull isVisible={true} />; // Only mounted if active
+                        case 'Analyzing': return <AnalyzingPage />;
                         case 'Threads': return <ThreadsPage />;
                         case 'Images': return <ImagesPage isAdmin={isAdmin} />;
                         case 'Links': return <LinksPage />;
@@ -216,11 +219,13 @@ const App: React.FC = () => {
             <I18nProvider>
                 <NotificationProvider>
                     <GlobalActionsLayer>
-                        <LiveProvider>
-                            <ImageProvider>
-                                <AppContent />
-                            </ImageProvider>
-                        </LiveProvider>
+                        <ProfileProvider>
+                            <LiveProvider>
+                                <ImageProvider>
+                                    <AppContent />
+                                </ImageProvider>
+                            </LiveProvider>
+                        </ProfileProvider>
                     </GlobalActionsLayer>
                 </NotificationProvider>
             </I18nProvider>

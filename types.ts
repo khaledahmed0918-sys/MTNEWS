@@ -2,7 +2,7 @@
 export type Lang = 'en' | 'ar';
 export type Theme = 'light' | 'dark';
 
-export type Section = 'Home' | 'Map' | 'Votes' | 'Threads' | 'Images' | 'Links' | 'Tags' | 'Credits' | 'Logs' | 'Live';
+export type Section = 'Home' | 'Map' | 'Votes' | 'Analyzing' | 'Threads' | 'Images' | 'Links' | 'Tags' | 'Credits' | 'Logs' | 'Live';
 
 export interface NavItem {
   id: Section;
@@ -190,4 +190,39 @@ export interface StreamerRequest {
     tags: string[];
     characters: string[];
     createdAt: string;
+}
+
+// --- ANALYZING / FORMS TYPES ---
+
+export interface UserProfile {
+    name: string;
+    avatar: string; // Base64
+}
+
+export interface FormAttachment {
+    type: string; // mimetype
+    path: string;
+}
+
+export interface FormAuthor {
+    name: string;
+    avatar: string;
+}
+
+export interface FormMessage {
+    id: string;
+    author: FormAuthor;
+    content: string;
+    date: string;
+    replyTo?: string | null; // ID of message replying to
+    attachments: FormAttachment[];
+}
+
+export interface AnalysisForm {
+    id: string;
+    title: string;
+    targets: string | null;
+    createdAt: string;
+    initialMessage: FormMessage;
+    messages: FormMessage[];
 }

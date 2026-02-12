@@ -1,5 +1,5 @@
 
-const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
+import { API_BASE } from '../constants';
 
 export const logAction = async (type: string, message: string, details?: string) => {
     try {
@@ -15,7 +15,7 @@ export const logAction = async (type: string, message: string, details?: string)
             })
         });
     } catch (e) {
-        // Silent fail
+        // Silent fail for logging actions to avoid infinite error loops
     }
 };
 

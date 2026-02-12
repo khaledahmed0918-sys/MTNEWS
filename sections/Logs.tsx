@@ -1,13 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Icons } from '../constants';
+import { Icons, API_BASE } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
 import { GlassCard } from '../components/ui/GlassCard';
 import { LogEntry } from '../types';
 import { AsyncButton } from '../components/ui/AsyncButton';
-
-const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 // --- ADMIN DATA MANAGER MODAL ---
 const AdminDataManagerModal: React.FC<{ onClose: () => void; onRefresh: () => void }> = ({ onClose, onRefresh }) => {
@@ -58,7 +56,7 @@ export const LogsPage: React.FC = () => {
             });
             if (res.ok && !signal?.aborted) setLogs((await res.json()).reverse());
         } catch (e: any) {
-            if (e.name !== 'AbortError') console.error(e);
+            if (e.name !== 'AbortError') console.warn("Log fetch failed");
         }
     };
 

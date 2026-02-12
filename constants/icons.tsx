@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Twitter, Youtube, Instagram, Sun, Moon, Languages, Star, Search, ChevronDown, Link as LinkIcon, ExternalLink, ClipboardCopy, Home, Users, MessageSquare, Image as ImageIcon, Link2, UserCircle, Award, X, Check, ZoomIn, ZoomOut, PowerOff, RotateCcw, Map as MapIcon, RefreshCw, Layers, SearchX, Tag, Filter, ArrowUp, ArrowDown, AlertCircle, Vote as VoteIcon, History, Clock, Trophy, Lock, LogOut, Eye, Plus, Edit, Trash, Save, Key, ShieldCheck, ArrowLeft, ArrowRight, FileText, Calendar, Trash2, Settings, Ban, RotateCw, Minus, CheckCircle2, Upload, AlertTriangle, FolderOpen, PenTool, EyeOff, Loader2, Database, Radio, Play, Bell, BellOff, Snowflake, Video, Tv, UserCheck, MoreVertical, XCircle, RefreshCcw, Circle, Wifi, WifiOff, List, UserPlus } from 'lucide-react';
+import { Twitter, Youtube, Instagram, Sun, Moon, Languages, Star, Search, ChevronDown, Link as LinkIcon, ExternalLink, ClipboardCopy, Home, Users, MessageSquare, Image as ImageIcon, Link2, UserCircle, Award, X, Check, ZoomIn, ZoomOut, PowerOff, RotateCcw, Map as MapIcon, RefreshCw, Layers, SearchX, Tag, Filter, ArrowUp, ArrowDown, AlertCircle, Vote as VoteIcon, History, Clock, Trophy, Lock, LogOut, Eye, Plus, Edit, Trash, Save, Key, ShieldCheck, ArrowLeft, ArrowRight, FileText, Calendar, Trash2, Settings, Ban, RotateCw, Minus, CheckCircle2, Upload, AlertTriangle, FolderOpen, PenTool, EyeOff, Loader2, Database, Radio, Play, Bell, BellOff, Snowflake, Video, Tv, UserCheck, MoreVertical, XCircle, RefreshCcw, Circle, Wifi, WifiOff, List, UserPlus, CornerUpRight, Activity, Send } from 'lucide-react';
 
 const Kick = (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <img src="https://i.postimg.cc/65CJczDK/1726118265kick-logo-white.png" alt="Kick Logo" {...props} className={`${props.className || ''} object-contain`} />
@@ -51,7 +51,7 @@ export const Icons = {
   ArrowDown: (props: React.SVGProps<SVGSVGElement>) => <ArrowDown {...props} />,
   AlertCircle: (props: React.SVGProps<SVGSVGElement>) => <AlertCircle {...props} />,
   Vote: (props: React.SVGProps<SVGSVGElement>) => <VoteIcon {...props} />,
-  Votes: (props: React.SVGProps<SVGSVGElement>) => <VoteIcon {...props} />, // Alias for Votes section
+  Votes: (props: React.SVGProps<SVGSVGElement>) => <VoteIcon {...props} />, 
   History: (props: React.SVGProps<SVGSVGElement>) => <History {...props} />,
   Clock: (props: React.SVGProps<SVGSVGElement>) => <Clock {...props} />,
   Trophy: (props: React.SVGProps<SVGSVGElement>) => <Trophy {...props} />,
@@ -89,7 +89,7 @@ export const Icons = {
   Snowflake: (props: React.SVGProps<SVGSVGElement>) => <Snowflake {...props} />,
   Video: (props: React.SVGProps<SVGSVGElement>) => <Video {...props} />,
   Tv: (props: React.SVGProps<SVGSVGElement>) => <Tv {...props} />,
-  Live: (props: React.SVGProps<SVGSVGElement>) => <Tv {...props} />, // Alias for Live section
+  Live: (props: React.SVGProps<SVGSVGElement>) => <Tv {...props} />, 
   UserCheck: (props: React.SVGProps<SVGSVGElement>) => <UserCheck {...props} />,
   MoreVertical: (props: React.SVGProps<SVGSVGElement>) => <MoreVertical {...props} />,
   XCircle: (props: React.SVGProps<SVGSVGElement>) => <XCircle {...props} />,
@@ -99,4 +99,8 @@ export const Icons = {
   WifiOff: (props: React.SVGProps<SVGSVGElement>) => <WifiOff {...props} />,
   List: (props: React.SVGProps<SVGSVGElement>) => <List {...props} />,
   UserPlus: (props: React.SVGProps<SVGSVGElement>) => <UserPlus {...props} />,
+  CornerUpRight: (props: React.SVGProps<SVGSVGElement>) => <CornerUpRight {...props} />,
+  Send: (props: React.SVGProps<SVGSVGElement>) => <Send {...props} />,
+  Analyzing: (props: React.SVGProps<SVGSVGElement>) => <Activity {...props} />,
+  Activity: (props: React.SVGProps<SVGSVGElement>) => <Activity {...props} />,
 };
