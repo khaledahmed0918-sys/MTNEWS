@@ -106,7 +106,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 fetchData(signal);
                 fetchRequests(signal);
             }
-        }, 8000); // Slightly faster polling
+        }, 5000); // Polling every 5 seconds for faster updates
 
         return () => {
             if (abortControllerRef.current) abortControllerRef.current.abort();

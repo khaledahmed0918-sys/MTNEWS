@@ -11,7 +11,7 @@ import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
 import { LiveProvider } from './contexts/LiveContext';
 import { ImageProvider } from './contexts/ImageContext';
 import { ProfileProvider } from './contexts/ProfileContext';
-import { ClipProvider } from './contexts/ClipContext'; // Added
+import { ClipProvider } from './contexts/ClipContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Components
@@ -29,7 +29,7 @@ const LivePage = lazy(() => import('./sections/live/LivePage').then(module => ({
 const VotesPage = lazy(() => import('./sections/votes/VotesPage').then(module => ({ default: module.VotesPage })));
 const MapPageFull = lazy(() => import('./sections/Map').then(module => ({ default: module.MapPageFull })));
 const AnalyzingPage = lazy(() => import('./sections/Analyzing').then(module => ({ default: module.AnalyzingPage })));
-const ClipsPage = lazy(() => import('./sections/Clips/ClipsPage').then(module => ({ default: module.ClipsPage }))); // Added
+const ClipsPage = lazy(() => import('./sections/Clips/ClipsPage').then(module => ({ default: module.ClipsPage })));
 
 // Split modules
 const ThreadsPage = lazy(() => import('./sections/Threads').then(module => ({ default: module.ThreadsPage })));
@@ -149,7 +149,7 @@ const AppContent: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen w-full bg-[#050505] text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
+        <div className="flex h-screen w-full bg-gradient-to-br from-slate-950 via-[#1a0b2e] to-slate-950 text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
             <SnowEffect enabled={snowEnabled} />
 
             {/* Sidebar (Desktop & Mobile) */}

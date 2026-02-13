@@ -9,6 +9,7 @@ import { AsyncButton } from '../../components/ui/AsyncButton';
 import { ImageUploadControl } from '../../components/ui/SharedInputs';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
 import { logAction } from '../../utils/logging';
+import { robustFetch } from '../../utils/apiWrapper';
 
 // --- VOTE CARD (OPTIMIZED PERFORMANCE) ---
 export const Vote3DCard: React.FC<{ 
@@ -244,7 +245,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
 };
 
 // --- GROUP TOOLS ---
-export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const VoteGroupToolsModal: React.FC<{ onClose: () => void; onRefresh: () => void }> = ({ onClose, onRefresh }) => {
     const { t } = useI18n();
     const { requestDelete } = useGlobalActions();
     const [view, setView] = useState<'menu' | 'add' | 'remove'>('menu');
@@ -253,21 +254,29 @@ export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose
     const [groups, setGroups] = useState<any[]>([]);
 
     useEffect(() => {
-        fetch(`${API_BASE}/categories`, { headers: { "ngrok-skip-browser-warning": "true" }})
-            .then(r => r.json())
-            .then(setGroups)
-            .catch(() => {});
+        fetchGroups();
     }, []);
 
+    const fetchGroups = async () => {
+        try {
+            const res = await robustFetch('/categories', { skipErrorLog: true });
+            if (res.ok) setGroups(await res.json());
+        } catch (e) {}
+    };
+
     const handleAdd = async (signal: AbortSignal) => {
-        await fetch(`${API_BASE}/categories/add`, {
+        const res = await robustFetch('/categories/add', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', "ngrok-skip-browser-warning": "true" },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: groupName, image: groupImage }),
             signal
         });
-        logAction('admin', 'Added Category', groupName);
-        onClose();
+        
+        if (res.ok) {
+            logAction('admin', 'Added Category', groupName);
+            onRefresh();
+            onClose();
+        }
     };
 
     const handleRemove = (id: string, name: string) => {
@@ -275,13 +284,13 @@ export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose
             t('deleteCategoryConfirm'),
             `Delete Category: ${name}?`,
             async () => {
-                await fetch(`${API_BASE}/categories/remove`, {
+                await robustFetch('/categories/remove', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', "ngrok-skip-browser-warning": "true" },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 });
-                const res = await fetch(`${API_BASE}/categories`, { headers: { "ngrok-skip-browser-warning": "true" }});
-                if(res.ok) setGroups(await res.json());
+                await fetchGroups(); // Refresh local list
+                onRefresh(); // Refresh parent
             },
             undefined,
             'admin',
@@ -303,17 +312,18 @@ export const VoteGroupToolsModal: React.FC<{ onClose: () => void }> = ({ onClose
                     <div className="flex flex-col gap-4">
                         <input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder={t('categoryName')} className="p-3 bg-white/5 border border-white/10 rounded-xl text-white" />
                         <ImageUploadControl singleMode initialUrl={groupImage} onUrlsChange={(urls) => setGroupImage(urls[0] || '')} />
-                        <AsyncButton onClick={handleAdd} label={t('saveChanges')} variant="primary" className="w-full" />
+                        <AsyncButton onClick={handleAdd} label={t('saveChanges')} variant="success" className="w-full" />
                     </div>
                 )}
                 {view === 'remove' && (
                     <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto custom-scrollbar">
                          {groups.map(g => (
                              <div key={g.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                                 <span className="font-bold">{g.name}</span>
+                                 <span className="font-bold text-white">{g.name}</span>
                                  <button onClick={() => handleRemove(g.id, g.name)} className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white text-sm font-bold">{t('remove')}</button>
                              </div>
                          ))}
+                         {groups.length === 0 && <div className="text-center text-gray-500">{t('noCategories')}</div>}
                     </div>
                 )}
             </GlassCard>

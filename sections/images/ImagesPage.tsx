@@ -160,6 +160,14 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                          {isAdmin && (
                             <div className="flex gap-2">
                                 <motion.button
+                                    onClick={() => setShowPendingModal(true)}
+                                    className="px-4 py-3 bg-indigo-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg border border-white/10 relative"
+                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
+                                >
+                                    <Icons.List className="w-5 h-5" />
+                                    {requests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">{requests.length}</span>}
+                                </motion.button>
+                                <motion.button
                                     onClick={() => setShowCategoryTool(true)}
                                     className="px-4 py-3 bg-purple-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg border border-white/10"
                                     {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}

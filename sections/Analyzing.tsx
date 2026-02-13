@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform } from 'framer-motion';
 import { Icons, API_BASE } from '../constants';
@@ -56,7 +55,7 @@ const CreateSubjectModal: React.FC<{ onClose: () => void; onSuccess: () => Promi
 
             const res = await robustFetch('/subject/create', { method: 'POST', body: fd, signal });
             if (res.ok) {
-                await onSuccess();
+                await onSuccess(); // Trigger refresh on parent
                 addToast(t('success'), 'success');
                 onClose();
             } else throw new Error("Failed");
@@ -169,6 +168,17 @@ export const AnalyzingPage: React.FC = () => {
         fetchSubjects();
     }, []);
 
+    // Polling logic for detail view
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+        if (view === 'detail' && currentSubject) {
+            interval = setInterval(() => {
+                fetchMessagesForSubject(currentSubject.id);
+            }, 2000); // 2 second polling for chat
+        }
+        return () => clearInterval(interval);
+    }, [view, currentSubject?.id]);
+
     const fetchSubjects = async () => {
         setLoading(true);
         try {
@@ -180,19 +190,36 @@ export const AnalyzingPage: React.FC = () => {
         } catch(e) {} finally { setLoading(false); }
     };
 
+    const fetchMessagesForSubject = async (id: string) => {
+        try {
+            const res = await robustFetch(`/subject/${id}/messages`, { skipErrorLog: true });
+            if (res.ok) {
+                const data = await res.json();
+                // Ensure we don't overwrite user's typing or pending optimistic updates if complex state management was used,
+                // but for simple chat, replacing is generally fine as long as we preserve 'isPending' locally if we were tracking it outside.
+                // Here we just update.
+                setCurrentSubject(prev => {
+                    if (!prev || prev.id !== id) return prev;
+                    return { ...prev, messages: data.messages };
+                });
+            }
+        } catch (e) {}
+    };
+
     const handleCreateClick = () => { if(!loading) (!hasProfile) ? openProfileModal() : setShowCreate(true); };
 
     const handleSubjectClick = async (subject: AnalysisForm) => {
         if(loading || isProcessing) return;
         setCurrentSubject(subject);
         setView('detail');
-        try {
-            const res = await robustFetch(`/subject/${subject.id}/messages`, { skipErrorLog: true });
-            if (res.ok) {
-                const data = await res.json();
-                setCurrentSubject(prev => prev ? { ...prev, messages: data.messages } : null);
-            }
-        } catch(e) {}
+        // Fetch immediately
+        fetchMessagesForSubject(subject.id);
+    };
+
+    const handleReturn = () => {
+        setCurrentSubject(null);
+        setView('list');
+        fetchSubjects(); // Refresh list on return
     };
 
     const handleSendMessage = async () => {
@@ -201,19 +228,23 @@ export const AnalyzingPage: React.FC = () => {
         if (isProcessing) return;
 
         setIsProcessing(true);
-        const tempId = `temp-${Date.now()}`;
-        const tempAttachments: FormAttachment[] = chatFiles.map(f => ({ type: f.type, path: URL.createObjectURL(f) }));
-        const optimisticMsg: FormMessage & { isPending: boolean } = {
-            id: tempId, author: { name: profile!.name, avatar: profile!.avatar }, content: chatInput,
-            date: t('sending'), attachments: tempAttachments, replyTo: replyTo?.id, isPending: true
-        };
-
-        setCurrentSubject(prev => { if(!prev) return null; return { ...prev, messages: [...prev.messages, optimisticMsg] }; });
         
         const filesToUpload = [...chatFiles];
         const contentToSend = chatInput;
         const replyToSend = replyTo ? replyTo.id : undefined;
+        
+        // Reset input immediately
         setChatInput(''); setChatFiles([]); setReplyTo(null);
+
+        // Optimistic Update
+        const tempId = `temp-${Date.now()}`;
+        const tempAttachments: FormAttachment[] = filesToUpload.map(f => ({ type: f.type, path: URL.createObjectURL(f) }));
+        const optimisticMsg: FormMessage & { isPending: boolean } = {
+            id: tempId, author: { name: profile!.name, avatar: profile!.avatar }, content: contentToSend,
+            date: t('sending'), attachments: tempAttachments, replyTo: replyTo?.id, isPending: true
+        };
+
+        setCurrentSubject(prev => { if(!prev) return null; return { ...prev, messages: [...prev.messages, optimisticMsg] }; });
         setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 
         try {
@@ -227,11 +258,19 @@ export const AnalyzingPage: React.FC = () => {
             const res = await robustFetch(`/subject/${currentSubject.id}/add`, { method: 'POST', body: fd });
             if (res.ok) {
                 const data = await res.json();
-                setCurrentSubject(prev => { if(!prev) return null; return { ...prev, messages: prev.messages.map(m => m.id === tempId ? data.message : m) }; });
+                // Replace optimistic message with real one
+                setCurrentSubject(prev => { 
+                    if(!prev) return null; 
+                    const filtered = prev.messages.filter(m => m.id !== tempId);
+                    return { ...prev, messages: [...filtered, data.message] }; 
+                });
             } else throw new Error("Server error");
         } catch (e) {
             addToast("Failed to send message", 'error');
-            setCurrentSubject(prev => { if(!prev) return null; return { ...prev, messages: prev.messages.map(m => m.id === tempId ? { ...m, isPending: false, isError: true } : m) }; });
+            setCurrentSubject(prev => { 
+                if(!prev) return null; 
+                return { ...prev, messages: prev.messages.map(m => m.id === tempId ? { ...m, isPending: false, isError: true } : m) }; 
+            });
         } finally { setIsProcessing(false); }
     };
 
@@ -243,7 +282,10 @@ export const AnalyzingPage: React.FC = () => {
                 const res = await robustFetch('/subject/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
                 if(res.ok) {
                     setSubjects(prev => prev.filter(s => s.id !== id));
-                    if(currentSubject?.id === id) setView('list');
+                    if(currentSubject?.id === id) {
+                        setView('list');
+                        setCurrentSubject(null);
+                    }
                     logAction('admin', 'Deleted Subject', `Title: ${title}, ID: ${id}`);
                     addToast("Subject deleted successfully", 'success');
                 }
@@ -304,7 +346,7 @@ export const AnalyzingPage: React.FC = () => {
                 {view === 'detail' && currentSubject && (
                     <motion.div key="detail" {...({ initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 20 } } as any)} className="flex flex-col h-full bg-[#0a0a0a] rounded-2xl border border-white/10 overflow-hidden relative pb-20 md:pb-0">
                         <div className="p-4 md:p-6 border-b border-white/10 bg-white/5 relative z-20">
-                            <button onClick={() => setView('list')} className="absolute top-4 right-4 md:top-6 md:right-6 p-2 bg-white/10 rounded-full hover:bg-white/20 text-white"><Icons.X className="w-5 h-5" /></button>
+                            <button onClick={handleReturn} className="absolute top-4 right-4 md:top-6 md:right-6 p-2 bg-white/10 rounded-full hover:bg-white/20 text-white"><Icons.X className="w-5 h-5" /></button>
                             <div className="flex items-center gap-4 mb-4 pr-10">
                                 <div className="w-14 h-14 rounded-full border-2 border-orange-500 p-0.5 overflow-hidden"><RobustImage src={currentSubject.initialMessage.author.avatar} className="w-full h-full object-cover" /></div>
                                 <div><h2 className="text-2xl font-black text-white line-clamp-1">{currentSubject.title}</h2><div className="flex gap-2 text-sm text-gray-400"><span className="text-orange-500 font-bold">{currentSubject.initialMessage.author.name}</span><span>•</span><span>{currentSubject.createdAt}</span></div></div>

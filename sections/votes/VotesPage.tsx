@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, API_BASE } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
@@ -18,7 +18,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [showDiscordModal, setShowDiscordModal] = useState<SocialLink | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = async (signal?: AbortSignal) => {
+    const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
             const res = await robustFetch('/categories', { signal, skipErrorLog: true });
             if (res.ok) {
@@ -39,21 +39,22 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
         } finally {
             if (!signal?.aborted) setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
         fetchData(controller.signal);
         
+        // Frequent Polling for real-time votes
         const interval = setInterval(() => {
             fetchData(controller.signal);
-        }, 10000); 
+        }, 5000); 
         
         return () => {
             controller.abort(); 
             clearInterval(interval);
         };
-    }, []);
+    }, [fetchData]);
 
     const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId), [groups, activeGroupId]);
 
@@ -71,10 +72,15 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 body: JSON.stringify({ increment: 1 })
             });
             logAction('vote', `Voted for ${name}`, `Group: ${activeGroup?.name}`);
-            fetchData(); 
+            fetchData(); // Immediate update
         } catch (e) {
             console.error("Vote failed");
         }
+    };
+
+    // Callback to refresh data from sub-components/modals
+    const handleRefresh = () => {
+        fetchData();
     };
 
     if (!activeGroupId) {
@@ -106,7 +112,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                     ))}
                     {groups.length === 0 && !loading && <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500 gap-2"><Icons.SearchX className="w-12 h-12 opacity-50" /><p>{t('noResults')}</p></div>}
                 </div>
-                <AnimatePresence>{showGroupTools && <VoteGroupToolsModal onClose={() => setShowGroupTools(false)} />}</AnimatePresence>
+                <AnimatePresence>{showGroupTools && <VoteGroupToolsModal onClose={() => setShowGroupTools(false)} onRefresh={handleRefresh} />}</AnimatePresence>
             </div>
         );
     }

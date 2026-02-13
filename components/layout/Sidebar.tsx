@@ -47,7 +47,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [isCollapsed, setIsCollapsed] = useLocalStorage('sidebar-collapsed', false);
     const { profile, openProfileModal } = useProfile();
 
-    const menuItems = navConfig.filter(item => item.enabled || (isAdmin && (item.id === 'Logs')));
+    // Construct menu items: enabled config items + Logs if admin
+    const menuItems = navConfig.filter(item => item.enabled);
+    if (isAdmin) {
+        menuItems.push({ id: 'Logs', enabled: true });
+    }
 
     return (
         <>
