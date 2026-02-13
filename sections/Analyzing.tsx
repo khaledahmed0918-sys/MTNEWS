@@ -113,7 +113,7 @@ const MessageItem: React.FC<{
 
     return (
         <div className={`relative w-full py-2 group/msg ${msg.isPending ? 'opacity-70' : ''}`}>
-            <motion.div style={{ opacity: arrowOpacity, scale: arrowScale, y: arrowY, x: isRtl ? -20 : 20 }} className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-0' : 'left-0'} z-10 text-blue-500 flex items-center justify-center`}>
+            <motion.div style={{ opacity: arrowOpacity, scale: arrowScale, y: arrowY, x: isRtl ? -20 : 20 } as any} className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-0' : 'left-0'} z-10 text-blue-500 flex items-center justify-center`}>
                 <Icons.CornerUpRight className={`w-8 h-8 ${isRtl ? '-scale-x-100' : ''}`} />
             </motion.div>
             <motion.div 
@@ -129,7 +129,7 @@ const MessageItem: React.FC<{
                 <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden shrink-0 border border-white/10 relative z-20"><RobustImage src={msg.author.avatar || 'https://via.placeholder.com/100'} className="w-full h-full object-cover" /></div>
                 <div className={`flex flex-col gap-1 max-w-[85%] ${isRtl ? 'items-start' : 'items-end'} relative`}>
                     {isAdmin && !msg.isPending && (
-                        <motion.button onClick={(e) => { e.stopPropagation(); onDelete(subjectId, msg.id); }} className={`absolute -top-3 ${isRtl ? '-right-8' : '-left-8'} p-1.5 bg-red-500 rounded-full text-white opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-lg z-30`} whileTap={{ scale: 0.9 }}>
+                        <motion.button onClick={(e) => { e.stopPropagation(); onDelete(subjectId, msg.id); }} className={`absolute -top-3 ${isRtl ? '-right-8' : '-left-8'} p-1.5 bg-red-500 rounded-full text-white opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-lg z-30`} {...({ whileTap: { scale: 0.9 } } as any)}>
                             <Icons.Trash2 className="w-3.5 h-3.5" />
                         </motion.button>
                     )}
@@ -271,13 +271,13 @@ export const AnalyzingPage: React.FC = () => {
         <div className="w-full max-w-5xl mx-auto h-[92vh] flex flex-col relative">
             <AnimatePresence mode="wait">
                 {view === 'list' && (
-                    <motion.div key="list" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-6 h-full pb-20">
+                    <motion.div key="list" {...({ initial: { opacity: 0, x: -20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } } as any)} className="flex flex-col gap-6 h-full pb-20">
                         <div className="flex gap-4 items-center">
                             <div className="flex-1 relative">
                                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchPlaceholder')} className="w-full p-4 pl-12 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:border-orange-500 transition-colors" disabled={loading} />
                                 <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                             </div>
-                            <motion.button onClick={handleCreateClick} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} disabled={loading} className={`px-6 py-4 rounded-2xl text-white font-bold flex items-center gap-2 shadow-lg ${loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-orange-600'}`}>
+                            <motion.button onClick={handleCreateClick} {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)} disabled={loading} className={`px-6 py-4 rounded-2xl text-white font-bold flex items-center gap-2 shadow-lg ${loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-orange-600'}`}>
                                 <Icons.Plus className="w-5 h-5" /><span className="hidden md:inline">{t('createForm')}</span>
                             </motion.button>
                         </div>
@@ -292,7 +292,7 @@ export const AnalyzingPage: React.FC = () => {
                                                 <div className="flex items-center gap-2 mt-4 text-xs text-gray-500"><div className="w-6 h-6 rounded-full bg-white/10 overflow-hidden"><RobustImage src={sub.initialMessage.author.avatar || 'https://via.placeholder.com/50'} className="w-full h-full object-cover"/></div><span>{sub.initialMessage.author.name}</span><span>•</span><span>{new Date(sub.createdAt).toLocaleDateString()}</span></div>
                                             </div>
                                             {cover && (<div className="w-32 h-full absolute right-0 top-0 opacity-20 group-hover:opacity-40 transition-opacity md:static md:opacity-100 md:w-32 md:h-32 md:rounded-xl md:border md:border-white/10 overflow-hidden bg-black shrink-0"><AttachmentPreview url={cover.path} type={cover.type} compact /></div>)}
-                                            {isAdmin && (<motion.button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(sub.id, sub.title); }} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20" whileTap={{ scale: 0.9 }}><Icons.Trash2 className="w-4 h-4" /></motion.button>)}
+                                            {isAdmin && (<motion.button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(sub.id, sub.title); }} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-20" {...({ whileTap: { scale: 0.9 } } as any)}><Icons.Trash2 className="w-4 h-4" /></motion.button>)}
                                         </div>
                                     );
                                 })}
@@ -302,7 +302,7 @@ export const AnalyzingPage: React.FC = () => {
                     </motion.div>
                 )}
                 {view === 'detail' && currentSubject && (
-                    <motion.div key="detail" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex flex-col h-full bg-[#0a0a0a] rounded-2xl border border-white/10 overflow-hidden relative pb-20 md:pb-0">
+                    <motion.div key="detail" {...({ initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 20 } } as any)} className="flex flex-col h-full bg-[#0a0a0a] rounded-2xl border border-white/10 overflow-hidden relative pb-20 md:pb-0">
                         <div className="p-4 md:p-6 border-b border-white/10 bg-white/5 relative z-20">
                             <button onClick={() => setView('list')} className="absolute top-4 right-4 md:top-6 md:right-6 p-2 bg-white/10 rounded-full hover:bg-white/20 text-white"><Icons.X className="w-5 h-5" /></button>
                             <div className="flex items-center gap-4 mb-4 pr-10">
@@ -325,7 +325,7 @@ export const AnalyzingPage: React.FC = () => {
                                     {chatFiles.length > 0 && (<div className="p-2 border-b border-white/5 flex gap-2 overflow-x-auto bg-black/20">{chatFiles.map((f, i) => <span key={i} className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300 whitespace-nowrap flex items-center gap-1">{f.name}</span>)}</div>)}
                                     <textarea value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={t('messagePlaceholder')} className="w-full p-3 px-4 bg-transparent text-white outline-none resize-none max-h-32 h-full min-h-[50px] leading-[24px]" style={{ height: 'auto' }} disabled={isProcessing} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} />
                                 </div>
-                                <motion.button onClick={handleSendMessage} disabled={isProcessing || (chatInput.length === 0 && chatFiles.length === 0)} whileTap={{ scale: 0.9 }} className={`p-0 rounded-full flex-shrink-0 h-[50px] w-[50px] flex items-center justify-center transition-all ${isProcessing ? 'bg-gray-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg'}`}>{isProcessing ? <Icons.Loader2 className="w-5 h-5 animate-spin" /> : <Icons.Send className={`w-5 h-5 ${dir === 'rtl' ? 'rotate-180' : ''}`} />}</motion.button>
+                                <motion.button onClick={handleSendMessage} disabled={isProcessing || (chatInput.length === 0 && chatFiles.length === 0)} {...({ whileTap: { scale: 0.9 } } as any)} className={`p-0 rounded-full flex-shrink-0 h-[50px] w-[50px] flex items-center justify-center transition-all ${isProcessing ? 'bg-gray-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg'}`}>{isProcessing ? <Icons.Loader2 className="w-5 h-5 animate-spin" /> : <Icons.Send className={`w-5 h-5 ${dir === 'rtl' ? 'rotate-180' : ''}`} />}</motion.button>
                             </div>
                         </div>
                     </motion.div>

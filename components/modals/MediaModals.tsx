@@ -49,9 +49,7 @@ export const DownloadableMediaModal: React.FC<{ mediaUrl: string; mediaType: 'im
     return (
         <motion.div
             className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[9999] flex flex-col items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)}
             onClick={onClose}
         >
              <div className="flex-1 w-full flex items-center justify-center overflow-hidden relative">
@@ -61,7 +59,7 @@ export const DownloadableMediaModal: React.FC<{ mediaUrl: string; mediaType: 'im
             </div>
             <div className="w-full max-w-xs mt-6 mb-2" onClick={(e) => e.stopPropagation()}>
                 <motion.button onClick={handleDownload} disabled={isDownloading} className="relative w-full h-12 overflow-hidden bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold tracking-wide shadow-lg transition-all backdrop-blur-md rounded-full">
-                        <motion.div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-400 z-0" initial={{ width: "0%" }} animate={{ width: `${downloadProgress}%` }} />
+                        <motion.div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-400 z-0" {...({ initial: { width: "0%" }, animate: { width: `${downloadProgress}%` } } as any)} />
                         <div className="absolute inset-0 flex items-center justify-center gap-2 z-10 drop-shadow-md">
                             {!isDownloading && <Icons.Link className="w-5 h-5 rotate-90" />}
                             <span>{isDownloading ? `${downloadProgress}%` : 'Download'}</span>

@@ -217,7 +217,7 @@ export const AddStreamerModal: React.FC<{ onClose: () => void }> = ({ onClose })
                     {status === 'failed' && <p className="text-red-500 text-sm font-bold">{t('streamerNotFound')}</p>}
                     <AnimatePresence>
                         {foundData && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/30 rounded-xl overflow-hidden">
+                            <motion.div {...({ initial: { height: 0, opacity: 0 }, animate: { height: 'auto', opacity: 1 } } as any)} className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/30 rounded-xl overflow-hidden">
                                 <img src={foundData.kickData.profile_pic} className="w-12 h-12 rounded-full border border-white/20" />
                                 <div><h4 className="font-bold text-white">{foundData.kickData.username}</h4><span className="text-xs text-green-400 font-bold">{t('verified')}</span></div>
                             </motion.div>
@@ -330,10 +330,12 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[10000] flex items-center justify-center p-4" onClick={onClose}>
             <motion.div 
-                initial={{ x: -100, opacity: 0 }} 
-                animate={{ x: 0, opacity: 1 }} 
-                exit={{ x: -100, opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                {...({
+                    initial: { x: -100, opacity: 0 },
+                    animate: { x: 0, opacity: 1 },
+                    exit: { x: -100, opacity: 0 },
+                    transition: { type: "spring", damping: 25, stiffness: 200 }
+                } as any)}
                 className={`w-full max-w-4xl bg-neutral-900 border border-white/10 rounded-[30px] overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh] ${snowEnabled ? 'frosted-effect' : ''}`} 
                 onClick={e => e.stopPropagation()}
             >

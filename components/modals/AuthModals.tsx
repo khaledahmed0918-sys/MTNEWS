@@ -78,7 +78,7 @@ export const AdminAuthModal: React.FC<{ onClose: () => void; onLogin: () => void
 
                 <motion.button 
                     onClick={handleLogin} 
-                    animate={shake.button ? { x: [-5, 5, -5, 5, 0] } : {}}
+                    {...({ animate: shake.button ? { x: [-5, 5, -5, 5, 0] } : {} } as any)}
                     className={`w-full py-4 font-black text-lg rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg ${isSuccess ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:shadow-orange-500/25'}`}
                 >
                     {isSuccess ? <><Icons.Check className="w-6 h-6" /> {t('loginSuccess')}</> : t('login')}

@@ -13,7 +13,6 @@ export const RobustImage: React.FC<RobustImageProps> = ({ src, className, alt, f
     const retryCount = useRef(0);
     const timeoutRef = useRef<any>(null);
 
-    // If prop src changes, reset everything
     useEffect(() => {
         setImgSrc(src);
         setStatus('loading');
@@ -29,14 +28,12 @@ export const RobustImage: React.FC<RobustImageProps> = ({ src, className, alt, f
 
     const handleError = () => {
         setStatus('error');
-        
-        // Exponential backoff for retries: 1s, 2s, 4s... capped at 10s
-        const delay = Math.min(1000 * Math.pow(2, retryCount.current), 10000);
+        // Exponential backoff for retries
+        const delay = Math.min(1000 * Math.pow(2, retryCount.current), 8000);
         
         timeoutRef.current = setTimeout(() => {
             retryCount.current++;
             setStatus('loading');
-            // Append timestamp to force browser to re-request and bypass cache
             const separator = src.includes('?') ? '&' : '?';
             setImgSrc(`${src}${separator}retry=${Date.now()}`);
         }, delay);
@@ -48,19 +45,29 @@ export const RobustImage: React.FC<RobustImageProps> = ({ src, className, alt, f
     };
 
     return (
-        <div className={`relative overflow-hidden ${className} bg-black/20`}>
+        <div className={`relative overflow-hidden ${className} bg-[#1a1a1a]`}>
+            {/* Image Layer - Shown immediately when loaded */}
             <img
                 {...props}
                 src={imgSrc}
                 alt={alt}
-                className={`w-full h-full object-cover transition-opacity duration-500 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+                className={`w-full h-full object-cover block ${status === 'loaded' ? 'visible' : 'invisible absolute top-0 left-0'}`}
                 onLoad={handleLoad}
                 onError={handleError}
                 loading="lazy"
             />
+            
+            {/* Skeleton Layer - Removed immediately when loaded */}
             {status !== 'loaded' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse">
-                    {fallbackIcon || <Icons.Loader2 className="w-1/3 h-1/3 text-gray-500 animate-spin" />}
+                <div className="absolute inset-0 flex items-center justify-center bg-white/5 animate-pulse z-10">
+                    {status === 'error' ? (
+                        <div className="flex flex-col items-center">
+                            <Icons.AlertTriangle className="w-6 h-6 text-orange-500 mb-1" />
+                            <span className="text-[10px] text-orange-500 font-bold">Retrying...</span>
+                        </div>
+                    ) : (
+                        fallbackIcon || <Icons.Loader2 className="w-1/3 h-1/3 text-gray-600 animate-spin" />
+                    )}
                 </div>
             )}
         </div>

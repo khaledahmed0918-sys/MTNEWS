@@ -86,7 +86,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                          <p className="text-gray-400 text-sm">{t('selectCategoryToVote')}</p>
                      </div>
                      {isAdmin && (
-                         <motion.button onClick={() => setShowGroupTools(true)} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 hover:bg-white/10 transition-all group" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                         <motion.button onClick={() => setShowGroupTools(true)} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 hover:bg-white/10 transition-all group" {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}>
                              <Icons.Settings className="w-5 h-5 text-gray-400 group-hover:rotate-90 transition-transform" /> {t('tools')}
                          </motion.button>
                      )}
@@ -118,7 +118,7 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                     <button onClick={() => setActiveGroupId(null)} className="w-10 h-10 bg-black/20 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors border border-white/5"><Icons.ArrowLeft className={`w-5 h-5 text-white ${dir === 'rtl' ? 'rotate-180' : ''}`} /></button>
                     <div><h2 className="text-2xl font-black text-white leading-none">{activeGroup?.name}</h2><span className="text-xs text-gray-400 font-bold uppercase tracking-widest">{t('voteFor')} your favorite</span></div>
                 </div>
-                {isAdmin && <motion.button onClick={() => setShowTools(true)} className="px-5 py-2.5 bg-orange-600 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 hover:bg-orange-700 transition-all ml-auto md:ml-0" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Icons.Settings className="w-5 h-5" /> <span>Manage Candidates</span></motion.button>}
+                {isAdmin && <motion.button onClick={() => setShowTools(true)} className="px-5 py-2.5 bg-orange-600 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 hover:bg-orange-700 transition-all ml-auto md:ml-0" {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}><Icons.Settings className="w-5 h-5" /> <span>Manage Candidates</span></motion.button>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                 {activeGroup?.people.map(person => {

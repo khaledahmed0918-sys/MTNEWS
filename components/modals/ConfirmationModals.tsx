@@ -19,9 +19,11 @@ export const ConfirmDeleteModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-lg z-[10000] flex items-center justify-center p-4">
             <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                exit={{ opacity: 0, scale: 0.9 }}
+                {...({
+                    initial: { opacity: 0, scale: 0.9 },
+                    animate: { opacity: 1, scale: 1 },
+                    exit: { opacity: 0, scale: 0.9 }
+                } as any)}
                 className="w-full max-w-sm bg-neutral-900 border border-white/10 rounded-2xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.2)]"
             >
                 <div className="flex flex-col items-center text-center gap-4">
@@ -64,9 +66,11 @@ export const UndoNotification: React.FC<{
 
     return (
         <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
+            {...({
+                initial: { y: 100, opacity: 0 },
+                animate: { y: 0, opacity: 1 },
+                exit: { y: 100, opacity: 0 }
+            } as any)}
             className="fixed bottom-8 right-8 z-[10000] flex flex-col items-center pointer-events-auto"
         >
             <div className="bg-neutral-900 border border-white/10 rounded-2xl p-1 shadow-2xl flex items-center gap-4 pl-4 pr-1.5 py-1.5 overflow-hidden relative min-w-[300px]">

@@ -28,10 +28,10 @@ export const NavBar: React.FC<{ activeSection: Section; setActiveSection: (secti
             <motion.button
               key={item.id} onClick={() => setActiveSection(item.id)}
               className={`relative px-4 py-2 text-sm md:text-base font-semibold whitespace-nowrap transition-colors duration-300 ${activeSection === item.id ? 'text-black dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white'}`}
-              whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
+              {...({ whileHover: { y: -2 }, whileTap: { scale: 0.95 } } as any)}
             >
               {t(item.id as keyof typeof translations.en)}
-              {activeSection === item.id && <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full" layoutId="underline" />}
+              {activeSection === item.id && <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full" {...({ layoutId: "underline" } as any)} />}
             </motion.button>
           ))}
         </div>

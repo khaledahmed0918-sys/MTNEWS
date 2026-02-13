@@ -182,10 +182,12 @@ const AppContent: React.FC = () => {
                          <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeSection}
-                                initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
-                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                                exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
-                                transition={{ duration: 0.3, ease: "easeOut" }}
+                                {...({
+                                    initial: { opacity: 0, y: 10, filter: 'blur(10px)' },
+                                    animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+                                    exit: { opacity: 0, y: -10, filter: 'blur(10px)' },
+                                    transition: { duration: 0.3, ease: "easeOut" }
+                                } as any)}
                                 className={`w-full ${activeSection === 'Home' ? 'max-w-[1600px]' : 'max-w-[1900px]'} mx-auto min-h-full px-4 md:px-0 pt-4 md:pt-0`}
                             >
                                 {renderSection()}

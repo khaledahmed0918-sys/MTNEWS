@@ -150,8 +150,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                              <motion.button
                                 onClick={() => setShowRequestModal(true)}
                                 className="px-4 py-3 bg-green-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg border border-white/10"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                             >
                                 <Icons.Plus className="w-5 h-5" />
                                 <span className="hidden md:inline">{t('requestImage')}</span>
@@ -163,16 +162,14 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                 <motion.button
                                     onClick={() => setShowCategoryTool(true)}
                                     className="px-4 py-3 bg-purple-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg border border-white/10"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                                 >
                                     <Icons.Layers className="w-5 h-5" />
                                 </motion.button>
                                 <motion.button
                                     onClick={() => setShowAdminModal(true)}
                                     className="px-4 py-3 bg-blue-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg border border-white/10"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                                 >
                                     <Icons.Edit className="w-5 h-5" />
                                 </motion.button>
@@ -193,7 +190,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             >
                                 {viewMode === mode && (
                                     <motion.div
-                                        layoutId="activeTabBg"
+                                        {...({ layoutId: "activeTabBg" } as any)}
                                         className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 rounded-full shadow-[0_0_20px_rgba(234,88,12,0.5)]"
                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                     />
@@ -211,7 +208,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
              <AnimatePresence mode="wait">
                  {/* CATEGORY VIEW */}
                  {viewMode === 'categories' && !activeCategory ? (
-                     <motion.div key="categories" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     <motion.div key="categories" {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {categories.length > 0 ? categories.map(cat => (
                             <div key={cat.id} className="h-64">
                                 <CategoryCard category={cat} allImages={allImages} onClick={() => setActiveCategory(cat)} />
@@ -220,7 +217,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                      </motion.div>
                  ) : (
                      /* IMAGE GRID VIEW (All Images OR Specific Category) */
-                     <motion.div key="images" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
+                     <motion.div key="images" {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)} className="flex flex-col gap-4">
                         {activeCategory && (
                             <div className="flex items-center gap-4 mb-2 p-2 bg-white/5 rounded-2xl border border-white/10 w-fit pr-6">
                                 <button onClick={() => setActiveCategory(null)} className="p-3 bg-black/40 rounded-xl hover:bg-white/10 border border-white/10 transition-colors group">
@@ -252,8 +249,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             <div className="flex justify-center py-8">
                                 <motion.button 
                                     onClick={handleLoadMore}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                                     className="px-8 py-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/10 rounded-full font-bold text-white transition-all shadow-lg flex items-center gap-2"
                                 >
                                     <span>More</span>

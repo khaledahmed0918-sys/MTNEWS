@@ -20,13 +20,13 @@ const MapController: React.FC<{ mapRef: React.RefObject<L.Map> }> = ({ mapRef })
 
     return (
         <div className="absolute top-6 right-6 flex flex-col gap-3 z-[400] pointer-events-auto">
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={resetView} className="w-12 h-12 flex items-center justify-center bg-black/60 backdrop-blur-xl rounded-2xl text-white border border-white/10 shadow-xl hover:bg-orange-500 hover:border-orange-500 transition-colors">
+            <motion.button {...({ whileHover: { scale: 1.1 }, whileTap: { scale: 0.9 } } as any)} onClick={resetView} className="w-12 h-12 flex items-center justify-center bg-black/60 backdrop-blur-xl rounded-2xl text-white border border-white/10 shadow-xl hover:bg-orange-500 hover:border-orange-500 transition-colors">
                 <Icons.RotateCcw className="w-6 h-6" />
             </motion.button>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={zoomIn} className="w-12 h-12 flex items-center justify-center bg-black/60 backdrop-blur-xl rounded-2xl text-white border border-white/10 shadow-xl hover:bg-white/20">
+            <motion.button {...({ whileHover: { scale: 1.1 }, whileTap: { scale: 0.9 } } as any)} onClick={zoomIn} className="w-12 h-12 flex items-center justify-center bg-black/60 backdrop-blur-xl rounded-2xl text-white border border-white/10 shadow-xl hover:bg-white/20">
                 <Icons.SearchPlus className="w-6 h-6" />
             </motion.button>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={zoomOut} className="w-12 h-12 flex items-center justify-center bg-black/60 backdrop-blur-xl rounded-2xl text-white border border-white/10 shadow-xl hover:bg-white/20">
+            <motion.button {...({ whileHover: { scale: 1.1 }, whileTap: { scale: 0.9 } } as any)} onClick={zoomOut} className="w-12 h-12 flex items-center justify-center bg-black/60 backdrop-blur-xl rounded-2xl text-white border border-white/10 shadow-xl hover:bg-white/20">
                 <Icons.SearchMinus className="w-6 h-6" />
             </motion.button>
         </div>
@@ -94,8 +94,10 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] w-full max-w-3xl px-4 pointer-events-none">
                 <div className="flex gap-4 pointer-events-auto">
                     <motion.div 
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
+                        {...({
+                            initial: { y: -50, opacity: 0 },
+                            animate: { y: 0, opacity: 1 }
+                        } as any)}
                         className="flex-1 relative group"
                     >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl blur opacity-30 group-hover:opacity-70 transition duration-1000"></div>
@@ -115,9 +117,11 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                     </motion.div>
                     
                     <motion.button 
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.1 }}
+                        {...({
+                            initial: { y: -50, opacity: 0 },
+                            animate: { y: 0, opacity: 1 },
+                            transition: { delay: 0.1 }
+                        } as any)}
                         onClick={() => setShowObjects(!showObjects)} 
                         className={`px-5 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-all shadow-xl`}
                     >
@@ -133,10 +137,12 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                 <AnimatePresence>
                     {showObjects && (
                         <motion.div 
-                            initial={{ opacity: 0, x: "100%" }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: "100%" }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            {...({
+                                initial: { opacity: 0, x: "100%" },
+                                animate: { opacity: 1, x: 0 },
+                                exit: { opacity: 0, x: "100%" },
+                                transition: { type: 'spring', damping: 25, stiffness: 200 }
+                            } as any)}
                             className="absolute top-0 right-0 h-full w-full md:w-96 z-[1000] bg-[#050505]/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col pt-24"
                         >
                             <div className="p-6 border-b border-white/10 flex items-center justify-between">
@@ -179,7 +185,7 @@ export const MapPageFull: React.FC<{ isVisible?: boolean }> = ({ isVisible = tru
                 {/* Loading State */}
                 <AnimatePresence>
                     {!mapLoaded && (
-                        <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-[500] bg-[#050505] flex flex-col items-center justify-center">
+                        <motion.div {...({ exit: { opacity: 0 } } as any)} className="absolute inset-0 z-[500] bg-[#050505] flex flex-col items-center justify-center">
                             <div className="w-20 h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-6" />
                             <h2 className="text-2xl font-bold text-white">{t('mapLoadingTitle')}</h2>
                             <div className="mt-3 text-orange-500 font-bold text-xl">{mapProgress}%</div>

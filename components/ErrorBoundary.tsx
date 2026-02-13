@@ -1,3 +1,4 @@
+
 import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { motion } from 'framer-motion';
 import { Icons } from '../constants';
@@ -34,8 +35,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-white p-4 text-center">
           <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }} 
+            {...({ initial: { scale: 0.8, opacity: 0 }, animate: { scale: 1, opacity: 1 } } as any)}
             className="bg-red-500/10 p-8 rounded-3xl border border-red-500/20 backdrop-blur-xl"
           >
             <Icons.RotateCcw className="w-16 h-16 mx-auto mb-4 text-red-500 animate-spin" style={{ animationDuration: '3s' }} />

@@ -35,10 +35,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     {toasts.map(toast => (
                         <motion.div
                             key={toast.id}
-                            initial={{ opacity: 0, x: 50, scale: 0.9 }}
-                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 50, scale: 0.9 }}
-                            layout
+                            {...({
+                                initial: { opacity: 0, x: 50, scale: 0.9 },
+                                animate: { opacity: 1, x: 0, scale: 1 },
+                                exit: { opacity: 0, x: 50, scale: 0.9 },
+                                layout: true
+                            } as any)}
                             className={`pointer-events-auto min-w-[250px] p-4 rounded-xl border backdrop-blur-md shadow-2xl flex items-center gap-3 ${
                                 toast.type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-500' :
                                 toast.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-500' :

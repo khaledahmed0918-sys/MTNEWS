@@ -178,7 +178,7 @@ export const CategoryAdminModal: React.FC<{ onClose: () => void, allImages: Imag
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
                     <AnimatePresence mode="wait">
                         {view === 'menu' && (
-                            <motion.div key="menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <motion.div key="menu" {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <button onClick={() => setView('add')} className="p-6 bg-green-500/10 border border-green-500/30 rounded-2xl hover:bg-green-500/20 flex flex-col items-center gap-3 transition-all group">
                                     <div className="p-3 bg-green-500 text-white rounded-full shadow-lg group-hover:scale-110 transition-transform"><Icons.Plus className="w-6 h-6" /></div>
                                     <span className="font-bold text-lg text-white">{t('addCategory')}</span>
@@ -191,50 +191,52 @@ export const CategoryAdminModal: React.FC<{ onClose: () => void, allImages: Imag
                         )}
 
                         {view === 'add' && (
-                            <motion.div key="add" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-6">
+                            <motion.div key="add" {...({ initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } } as any)} className="flex flex-col gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-gray-400 text-xs font-bold uppercase">{t('categoryName')}</label>
-                                    <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-orange-500" placeholder={t('enterCategoryName')} />
+                                    <label className="text-xs text-gray-400 font-bold uppercase">{t('categoryName')}</label>
+                                    <input 
+                                        value={newName} 
+                                        onChange={e => setNewName(e.target.value)} 
+                                        className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-orange-500" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-gray-400 text-xs font-bold uppercase">{t('tagSelection')}</label>
+                                    <label className="text-xs text-gray-400 font-bold uppercase">{t('tagSelection')}</label>
                                     <TagSelector allTags={allTagsMap} selectedTags={newTags} onChange={setNewTags} />
                                 </div>
-                                <AsyncButton onClick={handleCreate} label={t('createCategory')} variant="success" className="w-full py-4 mt-2" />
+                                <AsyncButton onClick={handleCreate} disabled={!newName || newTags.length === 0} label={t('createCategory')} variant="success" className="w-full py-4" />
                             </motion.div>
                         )}
 
                         {view === 'edit' && (
-                            <motion.div key="edit" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4">
-                                {!editingId ? (
+                            <motion.div key="edit" {...({ initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } } as any)} className="flex flex-col gap-4">
+                                {editingId ? (
+                                    <div className="flex flex-col gap-6">
+                                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                                            <span className="font-bold text-lg text-white">{categories.find(c => c.id === editingId)?.name}</span>
+                                            <button onClick={() => setEditingId(null)} className="text-sm text-gray-400 hover:text-white underline">{t('return')}</button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs text-gray-400 font-bold uppercase">{t('tagSelection')}</label>
+                                            <TagSelector allTags={allTagsMap} selectedTags={editingTags} onChange={setEditingTags} />
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <AsyncButton onClick={(s) => handleDelete(editingId, s)} label={t('deleteCategory')} variant="danger" className="flex-1" />
+                                            <AsyncButton onClick={handleUpdate} disabled={editingTags.length === 0} label={t('saveChanges')} variant="success" className="flex-[2]" />
+                                        </div>
+                                    </div>
+                                ) : (
                                     <div className="flex flex-col gap-2">
                                         {categories.length === 0 && <div className="text-center text-gray-500 py-10">{t('noCategories')}</div>}
                                         {categories.map(cat => (
-                                            <div key={cat.id} className="p-4 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
-                                                <div>
-                                                    <h4 className="font-bold text-white text-lg">{cat.name}</h4>
-                                                    <span className="text-xs text-gray-400">{cat.tags.length} Tags</span>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => openEdit(cat)} className="p-2 bg-blue-500/20 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"><Icons.Edit className="w-5 h-5" /></button>
-                                                    <AsyncButton onClick={(s) => handleDelete(cat.id, s)} label="" variant="danger" className="p-2 !px-2 rounded-lg" />
+                                            <div key={cat.id} onClick={() => openEdit(cat)} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                                                <span className="font-bold text-white">{cat.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs bg-black/30 px-2 py-1 rounded text-gray-400">{cat.tags.length} tags</span>
+                                                    <Icons.ChevronRight className="w-4 h-4 text-gray-500" />
                                                 </div>
                                             </div>
                                         ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-6">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xl font-bold text-orange-500">{categories.find(c => c.id === editingId)?.name}</h4>
-                                            <button onClick={() => setEditingId(null)} className="text-sm text-gray-400 hover:text-white">{t('cancel')}</button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-gray-400 text-xs font-bold uppercase">{t('editTags')}</label>
-                                            <TagSelector allTags={allTagsMap} selectedTags={editingTags} onChange={setEditingTags} />
-                                        </div>
-                                        <div className="flex gap-3 mt-4">
-                                            <AsyncButton onClick={handleUpdate} label={t('saveChanges')} variant="primary" className="flex-1 py-3" />
-                                        </div>
                                     </div>
                                 )}
                             </motion.div>

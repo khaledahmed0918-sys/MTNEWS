@@ -44,11 +44,13 @@ export const Vote3DCard: React.FC<{
         <div className="w-full h-[500px] py-4 flex justify-center">
             <motion.div 
                 className="relative w-full max-w-sm h-full rounded-[30px] bg-[#121212] border border-white/10 flex flex-col items-center p-1 shadow-xl group overflow-hidden transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }} 
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                whileHover={{ y: -8, borderColor: "rgba(249, 115, 22, 0.3)", boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}
-                transition={{ duration: 0.3 }}
+                {...({
+                    initial: { opacity: 0, y: 20 },
+                    whileInView: { opacity: 1, y: 0 },
+                    viewport: { once: true, margin: "-50px" },
+                    whileHover: { y: -8, borderColor: "rgba(249, 115, 22, 0.3)", boxShadow: "0 20px 40px rgba(0,0,0,0.6)" },
+                    transition: { duration: 0.3 }
+                } as any)}
             >
                 <div className="absolute inset-1 rounded-[26px] bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] border border-white/5 flex flex-col items-center p-5 overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-50 pointer-events-none" />
@@ -103,7 +105,7 @@ export const Vote3DCard: React.FC<{
                         </div>
                         <motion.button 
                             onClick={handleVote} 
-                            whileTap={{ scale: 0.97 }} 
+                            {...({ whileTap: { scale: 0.97 } } as any)}
                             className="w-full py-3.5 relative group overflow-hidden rounded-xl bg-[#151515] border border-orange-500/20 hover:border-orange-500/50 transition-all"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-10 group-hover:opacity-100 transition-opacity duration-300" />
@@ -198,7 +200,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
                 </div>
                 <AnimatePresence mode="wait">
                     {view === 'menu' && (
-                        <motion.div key="menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-2 gap-4 pt-4">
+                        <motion.div key="menu" {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)} className="grid grid-cols-2 gap-4 pt-4">
                             <button onClick={() => setView('add')} className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-all">
                                 <Icons.Plus className="w-8 h-8 text-green-500" />
                                 <span className="font-bold text-lg text-green-500">{t('add')}</span>
@@ -210,7 +212,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
                         </motion.div>
                     )}
                     {view === 'add' && (
-                        <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4">
+                        <motion.div key="form" {...({ initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } } as any)} className="flex flex-col gap-4">
                             <input value={name} onChange={e => setName(e.target.value)} placeholder={t('name')} className="p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500" />
                             <input value={tagsInput} onChange={e => setTagsInput(e.target.value)} placeholder={t('imageTags')} className="p-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500" />
                             <ImageUploadControl singleMode={true} onFilesChange={(files) => setImageFile(files[0])} onUrlsChange={() => {}} />
@@ -218,7 +220,7 @@ export const AdminToolsModal: React.FC<{ onClose: () => void; candidates: VoteCh
                         </motion.div>
                     )}
                     {view === 'reset' && (
-                        <motion.div key="reset" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+                        <motion.div key="reset" {...({ initial: { opacity: 0 }, animate: { opacity: 1 } } as any)} className="flex flex-col gap-3">
                             {candidates.map(c => (
                                 <div key={c.id} className="p-4 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-3">
                                     <div className="flex justify-between items-center">

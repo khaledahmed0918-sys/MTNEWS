@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Twitter, Youtube, Instagram, Sun, Moon, Languages, Star, Search, ChevronDown, Link as LinkIcon, ExternalLink, ClipboardCopy, Home, Users, MessageSquare, Image as ImageIcon, Link2, UserCircle, Award, X, Check, ZoomIn, ZoomOut, PowerOff, RotateCcw, Map as MapIcon, RefreshCw, Layers, SearchX, Tag, Filter, ArrowUp, ArrowDown, AlertCircle, Vote as VoteIcon, History, Clock, Trophy, Lock, LogOut, Eye, Plus, Edit, Trash, Save, Key, ShieldCheck, ArrowLeft, ArrowRight, FileText, Calendar, Trash2, Settings, Ban, RotateCw, Minus, CheckCircle2, Upload, AlertTriangle, FolderOpen, PenTool, EyeOff, Loader2, Database, Radio, Play, Bell, BellOff, Snowflake, Video, Tv, UserCheck, MoreVertical, XCircle, RefreshCcw, Circle, Wifi, WifiOff, List, UserPlus, CornerUpRight, Activity, Send, Clapperboard, Download } from 'lucide-react';
+import { Twitter, Youtube, Instagram, Sun, Moon, Languages, Star, Search, ChevronDown, ChevronRight, Link as LinkIcon, ExternalLink, ClipboardCopy, Home, Users, MessageSquare, Image as ImageIcon, Link2, UserCircle, Award, X, Check, ZoomIn, ZoomOut, PowerOff, RotateCcw, Map as MapIcon, RefreshCw, Layers, SearchX, Tag, Filter, ArrowUp, ArrowDown, AlertCircle, Vote as VoteIcon, History, Clock, Trophy, Lock, LogOut, Eye, Plus, Edit, Trash, Save, Key, ShieldCheck, ArrowLeft, ArrowRight, FileText, Calendar, Trash2, Settings, Ban, RotateCw, Minus, CheckCircle2, Upload, AlertTriangle, FolderOpen, PenTool, EyeOff, Loader2, Database, Radio, Play, Bell, BellOff, Snowflake, Video, Tv, UserCheck, MoreVertical, XCircle, RefreshCcw, Circle, Wifi, WifiOff, List, UserPlus, CornerUpRight, Activity, Send, Clapperboard, Download } from 'lucide-react';
 
 const Kick = (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <img src="https://i.postimg.cc/65CJczDK/1726118265kick-logo-white.png" alt="Kick Logo" {...props} className={`${props.className || ''} object-contain`} />
@@ -25,6 +25,7 @@ export const Icons = {
   Star: (props: React.SVGProps<SVGSVGElement>) => <Star {...props} />,
   Search: (props: React.SVGProps<SVGSVGElement>) => <Search {...props} />,
   ChevronDown: (props: React.SVGProps<SVGSVGElement>) => <ChevronDown {...props} />,
+  ChevronRight: (props: React.SVGProps<SVGSVGElement>) => <ChevronRight {...props} />,
   Link: (props: React.SVGProps<SVGSVGElement>) => <LinkIcon {...props} />,
   ExternalLink: (props: React.SVGProps<SVGSVGElement>) => <ExternalLink {...props} />,
   ClipboardCopy: (props: React.SVGProps<SVGSVGElement>) => <ClipboardCopy {...props} />,

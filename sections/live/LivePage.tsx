@@ -100,8 +100,7 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                     {/* Request Streamer (User) */}
                     <motion.button 
                         onClick={() => setShowRequestModal(true)} 
-                        whileHover={{ scale: 1.05 }} 
-                        whileTap={{ scale: 0.95 }} 
+                        {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                         className="px-6 py-4 bg-green-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2"
                     >
                         <Icons.Plus className="w-5 h-5" />
@@ -113,8 +112,7 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                     {isAdmin && (
                         <motion.button 
                             onClick={() => setShowAdminRequests(true)} 
-                            whileHover={{ scale: 1.05 }} 
-                            whileTap={{ scale: 0.95 }} 
+                            {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                             className="px-4 py-4 bg-purple-600 rounded-full text-white font-bold shadow-lg flex items-center gap-2"
                         >
                             <Icons.List className="w-5 h-5" />
@@ -124,8 +122,7 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                     {/* Add Local Streamer */}
                     <motion.button 
                         onClick={() => setShowAddModal(true)} 
-                        whileHover={{ scale: 1.05 }} 
-                        whileTap={{ scale: 0.95 }} 
+                        {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                         className="px-4 py-4 bg-white/5 border border-white/10 rounded-full text-white font-bold shadow-lg flex items-center gap-2 hover:bg-white/10"
                     >
                         <Icons.UserPlus className="w-5 h-5" />
@@ -155,8 +152,7 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                 <div className="flex justify-center mt-8">
                     <motion.button 
                         onClick={handleLoadMore}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
                         className="px-10 py-4 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-white font-bold text-lg shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:bg-white/10 hover:border-orange-500/50 transition-all flex items-center gap-2"
                     >
                         <span>More</span>

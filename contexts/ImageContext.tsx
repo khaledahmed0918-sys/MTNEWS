@@ -35,17 +35,21 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const abortControllerRef = useRef<AbortController | null>(null);
 
+    // Optimized Data Fetching: Parallel Requests
     const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
-            // 1. Fetch Images
-            const resImages = await robustFetch('/images', { signal, skipErrorLog: true });
+            // Fetch Images and Categories in PARALLEL for maximum speed
+            const [resImages, resCats] = await Promise.all([
+                robustFetch('/images', { signal, skipErrorLog: true, retryForever: true }),
+                robustFetch('/icategorys', { signal, skipErrorLog: true, retryForever: true })
+            ]);
+
             if (resImages.ok) {
                 const data = await resImages.json();
                 const mapped: ImageData[] = data.map((item: any) => {
                     let finalUrl = item.url;
-                    // Handle file paths from server
                     if (item.type === 'file' && item.path) {
-                        const cleanPath = item.path.replace(/\\/g, '/'); // Fix windows paths
+                        const cleanPath = item.path.replace(/\\/g, '/');
                         finalUrl = `${API_BASE}/${cleanPath}`;
                     }
                     return { id: item.id, url: finalUrl, tags: item.tags || [], apiType: item.type };
@@ -53,14 +57,12 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 setDynamicImages(mapped);
             }
 
-            // 2. Fetch Categories (NOTE: API endpoint is /icategorys based on server code)
-            const resCats = await robustFetch('/icategorys', { signal, skipErrorLog: true });
-            if(resCats.ok) {
+            if (resCats.ok) {
                 setCategories(await resCats.json());
             }
 
         } catch (e: any) {
-            // Ignore errors here to keep the app running, the polling will retry
+            // Retry logic handled inside robustFetch(retryForever: true)
         } finally {
             if (!signal?.aborted) {
                 setLoading(false);
@@ -70,7 +72,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const fetchRequests = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await robustFetch('/images/request', { signal, skipErrorLog: true });
+            // FIX: Endpoint corrected to '/images/requests' (plural) based on backend
+            const res = await robustFetch('/images/requests', { signal, skipErrorLog: true, retryForever: true });
             if (res.ok) {
                 const data = await res.json();
                 const mapped: ImageRequest[] = data.map((req: any) => {
@@ -97,13 +100,13 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         fetchData(signal);
         fetchRequests(signal);
 
-        // Interval Polling (Every 10 seconds)
+        // Interval Polling
         const intervalId = setInterval(() => {
-            if (!document.hidden) { // Only poll when tab is active to save resources
+            if (!document.hidden) { 
                 fetchData(signal);
                 fetchRequests(signal);
             }
-        }, 10000);
+        }, 8000); // Slightly faster polling
 
         return () => {
             if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -155,12 +158,9 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             signal
         });
         if (!res.ok) throw new Error(`Delete failed`);
-        // Optimistic update
         setDynamicImages(prev => prev.filter(img => img.id !== id));
         await fetchData(signal);
     };
-
-    // --- CATEGORY METHODS ---
 
     const addCategory = async (name: string, tags: string[], signal?: AbortSignal) => {
         const res = await robustFetch('/icategory/add', {
@@ -195,12 +195,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         await fetchData(signal);
     };
 
-    // --- REQUEST METHODS ---
-
     const submitImageRequest = async (files: File[], urls: string[], tags: string, signal?: AbortSignal) => {
         const fd = new FormData();
-        
-        // Backend logic in provided server code expects 'files' array and 'images' JSON string
         files.forEach(f => fd.append('files', f));
 
         const metadata = [
@@ -210,6 +206,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         
         fd.append('images', JSON.stringify(metadata));
 
+        // Note: Endpoint for CREATING request is /images/request (singular) per backend
         const res = await robustFetch('/images/request', {
             method: 'POST',
             body: fd,
@@ -238,7 +235,6 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         if (res.ok) {
             setMyRequestIds(prev => prev.filter(id => id !== requestId));
-            // Optimistic update
             setRequests(prev => prev.filter(r => r.id !== requestId));
             await fetchRequests(signal);
         } else {

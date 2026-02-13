@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Icons } from '../../constants';
@@ -95,7 +96,7 @@ export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, lab
                 ) : status === 'cancelling' ? (
                     <span>{t('cancelling')}</span>
                 ) : status === 'success' ? (
-                    <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="flex items-center gap-2">
+                    <motion.div {...({ initial: { scale: 0.5 }, animate: { scale: 1 } } as any)} className="flex items-center gap-2">
                         <Icons.Check className="w-5 h-5" />
                         <span>{t('success')}</span>
                     </motion.div>
@@ -106,8 +107,7 @@ export const AsyncButton: React.FC<AsyncButtonProps> = ({ onClick, onCancel, lab
             
             <motion.div 
                 className={`absolute inset-0 z-0 bg-green-500`}
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
+                {...({ initial: { width: 0 }, animate: { width: `${progress}%` } } as any)}
                 transition={{ ease: "linear" }}
             />
         </button>

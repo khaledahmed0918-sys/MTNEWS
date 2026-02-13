@@ -30,9 +30,11 @@ export const Tooltip: React.FC<{ content: string; children: React.ReactNode }> =
             <AnimatePresence>
             {show && (
                 <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    {...({
+                        initial: { opacity: 0, y: 10, scale: 0.9 },
+                        animate: { opacity: 1, y: 0, scale: 1 },
+                        exit: { opacity: 0, y: 10, scale: 0.9 }
+                    } as any)}
                     className="absolute z-20 bottom-full mb-2 px-3 py-1.5 text-sm font-medium text-white bg-gray-900/90 dark:bg-black/90 rounded-lg shadow-sm whitespace-nowrap left-1/2 -translate-x-1/2"
                 >
                     {content}
@@ -65,9 +67,7 @@ export const FavoriteButton: React.FC<{ id: string; category: string; className?
   return (
     <motion.button
       onClick={handleClick}
-      animate={controls}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
+      {...({ animate: controls, whileHover: { scale: 1.1 }, whileTap: { scale: 0.9 } } as any)}
       className={`p-2 rounded-full backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors ${className || 'bg-white/40 dark:bg-black/40'}`}
     >
       <Icons.Star className={`w-6 h-6 ${isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600 dark:text-gray-300'}`} />
@@ -241,8 +241,7 @@ export const ImageUploadControl: React.FC<{
                                         <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
                                             <motion.div 
                                                 className={`h-full ${f.status === 'success' ? 'bg-green-500' : f.status === 'error' ? 'bg-red-500' : 'bg-orange-500'}`}
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${f.progress}%` }}
+                                                {...({ initial: { width: 0 }, animate: { width: `${f.progress}%` } } as any)}
                                             />
                                         </div>
                                     </div>
@@ -260,7 +259,7 @@ export const ImageUploadControl: React.FC<{
             <AnimatePresence>
                 {previewFile && (
                     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setPreviewFile(null)}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative max-w-full max-h-[90vh]">
+                        <motion.div {...({ initial: { scale: 0.9, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.9, opacity: 0 } } as any)} className="relative max-w-full max-h-[90vh]">
                             <img src={previewFile.url} alt="Preview" className="rounded-xl shadow-2xl max-w-full max-h-[80vh]" />
                             <button onClick={() => setPreviewFile(null)} className="absolute -top-4 -right-4 bg-red-500 text-white rounded-full p-2 shadow-lg"><Icons.X className="w-6 h-6" /></button>
                         </motion.div>
@@ -275,7 +274,7 @@ export const ToggleSwitch: React.FC<{ isOn: boolean; onToggle: () => void; disab
     const { dir } = useI18n(); 
     return (
         <div onClick={disabled ? undefined : onToggle} className={`relative w-12 h-7 flex items-center rounded-full p-1 transition-colors duration-300 ease-in-out ${disabled ? 'bg-gray-600 cursor-not-allowed opacity-50' : isOn ? 'bg-green-500 cursor-pointer' : 'bg-gray-600 cursor-pointer'}`}>
-            <motion.div layout className="w-5 h-5 bg-white rounded-full shadow-md" animate={{ x: isOn ? (dir === 'rtl' ? -20 : 20) : 0 }} />
+            <motion.div {...({ layout: true } as any)} className="w-5 h-5 bg-white rounded-full shadow-md" {...({ animate: { x: isOn ? (dir === 'rtl' ? -20 : 20) : 0 } } as any)} />
         </div>
     );
 };

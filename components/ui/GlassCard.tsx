@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -14,8 +15,10 @@ export const GlassCard = React.forwardRef<HTMLDivElement, { children: React.Reac
             ref={ref}
             onClick={onClick}
             className={`relative overflow-hidden ${roundClass} p-6 md:p-8 ${bgClass} ${hoverClass} ${className} ${onClick ? 'cursor-pointer' : ''}`}
-            whileHover={onClick ? { y: -4 } : {}}
-            whileTap={onClick ? { scale: 0.99 } : {}}
+            {...({
+                whileHover: onClick ? { y: -4 } : {},
+                whileTap: onClick ? { scale: 0.99 } : {}
+            } as any)}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         >
             {/* Subtle Gradient shine */}
