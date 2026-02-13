@@ -23,7 +23,7 @@ const PROXIES = [
     (target: string) => `https://thingproxy.freeboard.io/fetch/${target}`,
 ];
 
-// Shuffle array helper for randomization
+// Shuffle array helper for randomization to distribute load
 const shuffle = <T>(array: T[]): T[] => {
     return array.sort(() => Math.random() - 0.5);
 };
@@ -32,7 +32,11 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout 
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
-        const response = await fetch(url, { ...options, signal: controller.signal });
+        const response = await fetch(url, { 
+            ...options, 
+            signal: controller.signal,
+            referrerPolicy: 'no-referrer' // Avoid leaking referrer to proxies
+        });
         clearTimeout(id);
         return response;
     } catch (error) {
@@ -41,10 +45,32 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout 
     }
 };
 
+// Returns a safe default object to prevent crashes
+const getSafeChannelObj = (username: string, error = false): Channel => ({
+      username: username,
+      display_name: username,
+      profile_pic: DEFAULT_PROFILE_PIC,
+      is_live: false,
+      live_title: null,
+      viewer_count: null,
+      live_since: null,
+      last_stream_start_time: null,
+      live_url: `https://kick.com/${username}`,
+      profile_url: `https://kick.com/${username}`,
+      error: error,
+      last_checked_at: new Date().toISOString(),
+      bio: null,
+      followers_count: null,
+      banner_image: null,
+      live_category: null,
+      social_links: {},
+      isLoading: false,
+});
+
 export const fetchKickChannel = async (originalUsername: string): Promise<Channel> => {
     // Timestamp for cache busting
     const t = Date.now();
-    const targetUrl = `https://kick.com/api/v2/channels/${originalUsername}?t=${t}`;
+    const targetUrl = `https://kick.com/api/v1/channels/${originalUsername}?_=${t}`;
     
     let responseData: any = null;
     let success = false;
@@ -71,7 +97,8 @@ export const fetchKickChannel = async (originalUsername: string): Promise<Channe
                         const json = JSON.parse(text);
                         // Check if it's the wrapper format or direct data
                         const root = json.data ? json.data : json;
-                        if (root.user || root.slug) {
+                        // Validation: Must have user object or valid slug
+                        if (root.user || root.slug || root.livestream !== undefined) {
                             responseData = json;
                             success = true;
                         }
@@ -81,42 +108,20 @@ export const fetchKickChannel = async (originalUsername: string): Promise<Channe
                 }
             } else if (res.status === 404) {
                 // User definitely doesn't exist on Kick
-                success = true; 
-                responseData = null;
+                return getSafeChannelObj(originalUsername, false);
             }
         } catch (e) {
-            // Suppress "Proxy failed" logs to keep console clean
+            // Suppress "Proxy failed" logs to keep console clean as requested
             continue;
         }
     }
 
-    // Default structure for failure or 404
-    const defaultData: Channel = {
-        username: originalUsername,
-        display_name: originalUsername,
-        profile_pic: DEFAULT_PROFILE_PIC,
-        is_live: false,
-        live_title: null,
-        viewer_count: 0,
-        live_since: null,
-        last_stream_start_time: null,
-        live_url: `https://kick.com/${originalUsername}`,
-        profile_url: `https://kick.com/${originalUsername}`,
-        error: !success, // True only if ALL proxies failed
-        last_checked_at: new Date().toISOString(),
-        bio: null,
-        followers_count: 0,
-        banner_image: null,
-        live_category: null,
-        social_links: {},
-        isLoading: false,
-    };
-
     if (!success || !responseData) {
-        return defaultData;
+        // Return error object but don't crash app
+        return getSafeChannelObj(originalUsername, true);
     }
 
-    // Parse V2 Data safely
+    // Parse Data safely (Supports V1 and V2 structures)
     try {
         const root = responseData.data ? responseData.data : responseData;
         const user = root.user || {};
@@ -129,6 +134,7 @@ export const fetchKickChannel = async (originalUsername: string): Promise<Channe
         if (user.youtube) socialLinks.youtube = user.youtube;
         if (user.instagram) socialLinks.instagram = user.instagram;
         if (user.discord) socialLinks.discord = user.discord;
+        if (user.tiktok) socialLinks.tiktok = user.tiktok;
 
         return {
             username: originalUsername,
@@ -150,7 +156,7 @@ export const fetchKickChannel = async (originalUsername: string): Promise<Channe
             error: false
         };
     } catch (parseError) {
-        return { ...defaultData, error: true };
+        return getSafeChannelObj(originalUsername, true);
     }
 };
 

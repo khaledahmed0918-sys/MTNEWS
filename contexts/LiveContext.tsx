@@ -8,8 +8,8 @@ import { fetchKickChannel } from '../services/KickService';
 
 // --- CONFIGURATION CONSTANTS ---
 const REFRESH_INTERVAL_MS = 180000; // 3 Minutes refresh cycle
-const BATCH_SIZE = 10;              // Fetch 10 streamers at once (High Speed)
-const BATCH_DELAY_MS = 1000;        // Wait 1 second between batches
+const BATCH_SIZE = 10;              // High Speed: 10 streamers per batch
+const BATCH_DELAY_MS = 1000;        // 1 second delay between batches
 
 interface LiveContextType {
     streamers: Streamer[];
@@ -35,7 +35,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [initialized, setInitialized] = useState(false);
     const processingRef = useRef(false);
 
-    // Sorting Logic: Loaded Cards -> Favorites -> Live -> Viewers -> Others
+    // Sorting Logic: Loaded Data > Favorites > Live > Viewers > Others
     const sortStreamers = useCallback((list: Streamer[]) => {
         return [...list].sort((a, b) => {
             // 1. Data Loaded Status (Bubbles loaded cards to top immediately)
@@ -73,7 +73,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 notificationsEnabled: pref.notify,
                 lastUpdated: 0,
                 addedAt: 0,
-                kickData: undefined // Loading state
+                kickData: undefined // Skeleton state
             } as Streamer;
         });
     }, [localPreferences]);
@@ -83,59 +83,57 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (processingRef.current) return;
         processingRef.current = true;
 
-        const queue = [...targetStreamers]; // Copy to avoid mutation issues
+        const queue = [...targetStreamers]; 
         
         for (let i = 0; i < queue.length; i += BATCH_SIZE) {
             const batch = queue.slice(i, i + BATCH_SIZE);
             
-            // Fire requests in parallel without blocking for each other
+            // Fire requests in parallel
             await Promise.all(batch.map(async (streamer) => {
-                try {
-                    const data = await fetchKickChannel(streamer.kickUsername);
-                    
-                    // Update state immediately upon data arrival
-                    if (data && !data.error) {
-                        setStreamers(prev => {
-                            const index = prev.findIndex(s => s.id === streamer.id);
-                            if (index === -1) return prev; // Streamer might have been removed
+                // Fetch using the robust service
+                const data = await fetchKickChannel(streamer.kickUsername);
+                
+                // Update state immediately upon data arrival
+                if (data && !data.error) {
+                    setStreamers(prev => {
+                        const index = prev.findIndex(s => s.id === streamer.id);
+                        if (index === -1) return prev; 
 
-                            const updatedStreamer: Streamer = {
-                                ...prev[index],
-                                kickData: {
-                                    id: 0,
-                                    slug: data.username,
-                                    user_id: 0,
-                                    username: data.display_name,
-                                    profile_pic: data.profile_pic,
-                                    banner: data.banner_image || '',
-                                    followers_count: data.followers_count || 0,
-                                    created_at: '',
-                                    bio: data.bio || ''
-                                },
-                                streamData: {
-                                    id: 0,
-                                    is_live: data.is_live,
-                                    viewers: data.viewer_count || 0,
-                                    start_time: data.live_since || data.last_stream_start_time || '',
-                                    title: data.live_title || '',
-                                    category_name: data.live_category || '',
-                                    category_icon: '',
-                                    thumbnail: ''
-                                },
-                                links: {
-                                    ...prev[index].links,
-                                    ...data.social_links as StreamerLinks
-                                },
-                                lastUpdated: Date.now()
-                            };
+                        const updatedStreamer: Streamer = {
+                            ...prev[index],
+                            kickData: {
+                                id: 0,
+                                slug: data.username,
+                                user_id: 0,
+                                username: data.display_name,
+                                profile_pic: data.profile_pic,
+                                banner: data.banner_image || '',
+                                followers_count: data.followers_count || 0,
+                                created_at: '',
+                                bio: data.bio || ''
+                            },
+                            streamData: {
+                                id: 0,
+                                is_live: data.is_live,
+                                viewers: data.viewer_count || 0,
+                                start_time: data.live_since || data.last_stream_start_time || '',
+                                title: data.live_title || '',
+                                category_name: data.live_category || '',
+                                category_icon: '',
+                                thumbnail: ''
+                            },
+                            links: {
+                                ...prev[index].links,
+                                ...data.social_links as StreamerLinks
+                            },
+                            lastUpdated: Date.now()
+                        };
 
-                            const newList = [...prev];
-                            newList[index] = updatedStreamer;
-                            return sortStreamers(newList);
-                        });
-                    }
-                } catch (e) {
-                    // Silent fail to keep queue moving fast
+                        const newList = [...prev];
+                        newList[index] = updatedStreamer;
+                        // Immediate Sort: Loaded cards jump to top
+                        return sortStreamers(newList);
+                    });
                 }
             }));
 
@@ -155,12 +153,12 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setLoading(true);
             const initialList = getStaticStreamers();
             
-            // Sort initial list by favorites to prioritize fetching them
+            // Initial Sort: Favorites first among skeletons
             const sortedInitial = initialList.sort((a, b) => (a.isFavorite === b.isFavorite ? 0 : a.isFavorite ? -1 : 1));
             setStreamers(sortedInitial);
 
-            // Start fetching
-            await runBatchFetching(sortedInitial);
+            // Start processing without awaiting to allow UI to render skeletons immediately
+            runBatchFetching(sortedInitial);
 
             setLoading(false);
             setInitialized(true);
@@ -169,18 +167,16 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         initLoad();
     }, [initialized, getStaticStreamers, sortStreamers]);
 
-    // Background Refresh Interval
+    // Background Refresh
     useEffect(() => {
         if (!initialized) return;
         const intervalId = setInterval(() => {
-            // Re-fetch existing list to update live status
             runBatchFetching(streamers);
         }, REFRESH_INTERVAL_MS); 
         return () => clearInterval(intervalId);
     }, [initialized, streamers]);
 
     const refresh = async () => {
-        // Manual refresh triggers immediately
         await runBatchFetching(streamers);
     };
 
