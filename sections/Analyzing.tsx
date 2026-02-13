@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform } from 'framer-motion';
 import { Icons, API_BASE } from '../constants';
@@ -93,7 +94,6 @@ const MessageItem: React.FC<{
     const isRtl = dir === 'rtl';
     const x = useMotionValue(0);
     const dragControls = useDragControls();
-    const [triggered, setTriggered] = useState(false);
     
     const swipeThreshold = 80;
     const arrowOpacity = useTransform(x, isRtl ? [20, swipeThreshold] : [-20, -swipeThreshold], [0, 1]);
@@ -105,8 +105,6 @@ const MessageItem: React.FC<{
         const thresholdMet = isRtl ? currentX > swipeThreshold : currentX < -swipeThreshold;
         if (thresholdMet) {
             onReply(msg);
-            setTriggered(true);
-            setTimeout(() => setTriggered(false), 500);
         }
     };
 
@@ -160,6 +158,7 @@ export const AnalyzingPage: React.FC = () => {
     const [chatInput, setChatInput] = useState('');
     const [chatFiles, setChatFiles] = useState<File[]>([]);
     const [replyTo, setReplyTo] = useState<FormMessage | null>(null);
+    const [isError, setIsError] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -181,13 +180,20 @@ export const AnalyzingPage: React.FC = () => {
 
     const fetchSubjects = async () => {
         setLoading(true);
+        setIsError(false);
         try {
             const res = await robustFetch('/subjects', { skipErrorLog: true });
             if (res.ok) {
                 const data = await res.json();
                 setSubjects(Array.isArray(data) ? data.reverse() : []);
+            } else {
+                throw new Error("Failed");
             }
-        } catch(e) {} finally { setLoading(false); }
+        } catch(e) {
+            setIsError(true);
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     const fetchMessagesForSubject = async (id: string) => {
@@ -195,9 +201,6 @@ export const AnalyzingPage: React.FC = () => {
             const res = await robustFetch(`/subject/${id}/messages`, { skipErrorLog: true });
             if (res.ok) {
                 const data = await res.json();
-                // Ensure we don't overwrite user's typing or pending optimistic updates if complex state management was used,
-                // but for simple chat, replacing is generally fine as long as we preserve 'isPending' locally if we were tracking it outside.
-                // Here we just update.
                 setCurrentSubject(prev => {
                     if (!prev || prev.id !== id) return prev;
                     return { ...prev, messages: data.messages };
@@ -212,14 +215,13 @@ export const AnalyzingPage: React.FC = () => {
         if(loading || isProcessing) return;
         setCurrentSubject(subject);
         setView('detail');
-        // Fetch immediately
         fetchMessagesForSubject(subject.id);
     };
 
     const handleReturn = () => {
         setCurrentSubject(null);
         setView('list');
-        fetchSubjects(); // Refresh list on return
+        fetchSubjects(); 
     };
 
     const handleSendMessage = async () => {
@@ -233,7 +235,6 @@ export const AnalyzingPage: React.FC = () => {
         const contentToSend = chatInput;
         const replyToSend = replyTo ? replyTo.id : undefined;
         
-        // Reset input immediately
         setChatInput(''); setChatFiles([]); setReplyTo(null);
 
         // Optimistic Update
@@ -258,7 +259,6 @@ export const AnalyzingPage: React.FC = () => {
             const res = await robustFetch(`/subject/${currentSubject.id}/add`, { method: 'POST', body: fd });
             if (res.ok) {
                 const data = await res.json();
-                // Replace optimistic message with real one
                 setCurrentSubject(prev => { 
                     if(!prev) return null; 
                     const filtered = prev.messages.filter(m => m.id !== tempId);
@@ -308,6 +308,26 @@ export const AnalyzingPage: React.FC = () => {
     };
 
     const filteredSubjects = subjects.filter(s => s.title.toLowerCase().includes(search.toLowerCase()));
+
+    // Error UI
+    if (isError && !loading && view === 'list') {
+        return (
+            <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30 mb-2">
+                    <Icons.AlertTriangle className="w-10 h-10 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Failed to load data</h3>
+                <p className="text-gray-400">Please try again later.</p>
+                <button 
+                    onClick={fetchSubjects} 
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-colors flex items-center gap-2"
+                >
+                    <Icons.RotateCcw className="w-4 h-4" />
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-5xl mx-auto h-[92vh] flex flex-col relative">

@@ -84,8 +84,10 @@ const AppContent: React.FC = () => {
         }).catch(() => {});
     }, []);
 
-    // Ensure active section is enabled
+    // Ensure active section is enabled (Exception: Logs for Admin)
     useEffect(() => {
+        if (activeSection === 'Logs' && isAdmin) return;
+
         const currentConfig = navConfig.find(n => n.id === activeSection);
         if (!currentConfig || !currentConfig.enabled) {
             const firstEnabled = navConfig.find(n => n.enabled);
@@ -93,7 +95,7 @@ const AppContent: React.FC = () => {
                 setActiveSection(firstEnabled.id);
             }
         }
-    }, [activeSection]);
+    }, [activeSection, isAdmin]);
 
     // Scroll to top when section changes
     useLayoutEffect(() => {
@@ -110,6 +112,7 @@ const AppContent: React.FC = () => {
     const handleLogout = () => {
         localStorage.removeItem('mtnews-auth-hash');
         setIsAdmin(false);
+        if (activeSection === 'Logs') setActiveSection('Home');
     };
 
     const handleAdminClick = () => {
@@ -122,6 +125,11 @@ const AppContent: React.FC = () => {
 
     // Render Section Logic
     const renderSection = () => {
+        // Exception for Logs: allow if admin
+        if (activeSection === 'Logs' && isAdmin) {
+             return <Suspense fallback={<SectionLoader />}><LogsPage /></Suspense>;
+        }
+
         // Safety check to ensure we don't render disabled sections
         const currentConfig = navConfig.find(n => n.id === activeSection);
         if (!currentConfig || !currentConfig.enabled) return null;
@@ -140,7 +148,6 @@ const AppContent: React.FC = () => {
                         case 'Images': return <ImagesPage isAdmin={isAdmin} />;
                         case 'Links': return <LinksPage />;
                         case 'Credits': return <CreditsPage />;
-                        case 'Logs': return <LogsPage />;
                         default: return <HomePage setActiveSection={setActiveSection} />;
                     }
                 })()}

@@ -17,8 +17,10 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [showGroupTools, setShowGroupTools] = useState(false);
     const [showDiscordModal, setShowDiscordModal] = useState<SocialLink | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isError, setIsError] = useState(false);
 
     const fetchData = useCallback(async (signal?: AbortSignal) => {
+        setIsError(false);
         try {
             const res = await robustFetch('/categories', { signal, skipErrorLog: true });
             if (res.ok) {
@@ -33,9 +35,11 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                 if (!signal?.aborted) {
                     setGroups(processed);
                 }
+            } else {
+                throw new Error("Failed");
             }
         } catch (e: any) {
-            // Silent catch for background polling
+            if (e.name !== 'AbortError') setIsError(true);
         } finally {
             if (!signal?.aborted) setLoading(false);
         }
@@ -82,6 +86,25 @@ export const VotesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const handleRefresh = () => {
         fetchData();
     };
+
+    if (isError && !loading) {
+        return (
+            <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30 mb-2">
+                    <Icons.AlertTriangle className="w-10 h-10 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Failed to load data</h3>
+                <p className="text-gray-400">Please try again later.</p>
+                <button 
+                    onClick={() => { setLoading(true); fetchData(); }} 
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-colors flex items-center gap-2"
+                >
+                    <Icons.RotateCcw className="w-4 h-4" />
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     if (!activeGroupId) {
         return (

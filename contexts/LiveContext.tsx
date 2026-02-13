@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
 import { Streamer, KickChannelInfo, KickStreamInfo, StreamerRequest } from '../types';
 import { useLocalStorage } from '../hooks';
@@ -8,7 +9,9 @@ import { robustFetch } from '../utils/apiWrapper';
 interface LiveContextType {
     streamers: Streamer[];
     loading: boolean;
+    error: boolean;
     loadBatch: (startIndex: number, count: number) => Promise<void>; 
+    refresh: () => Promise<void>;
     totalStreamersCount: number;
     addLocalStreamer: (streamer: Streamer) => void;
     deleteStreamer: (id: string, isSystem: boolean, kickUsername: string) => Promise<void>;
@@ -71,6 +74,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [streamers, setStreamers] = useState<Streamer[]>([]);
     const [apiRequests, setApiRequests] = useState<StreamerRequest[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const fetchRequests = useCallback(async () => {
@@ -87,9 +91,6 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const fetchSystemStreamers = useCallback(async () => {
         try {
-            // Note: If /streamers endpoint doesn't exist on server yet, this will fail gracefully.
-            // Assuming server has implemented it or will implement it based on request.
-            // If the provided server code is strict, this might 404. We handle that.
             const res = await robustFetch('/streamers', { skipErrorLog: true });
             if (res.ok) {
                 const data = await res.json();
@@ -106,9 +107,12 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     addedAt: s.createdAt ? new Date(s.createdAt).getTime() : Date.now(),
                 }));
                 setSystemStreamers(mapped);
+                return true;
+            } else {
+                return false;
             }
         } catch (e) {
-            // Silent fail
+            return false;
         }
     }, []);
 
@@ -182,8 +186,12 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const loadBatch = useCallback(async (startIndex: number, count: number) => {
+        setError(false);
         if (startIndex === 0) {
-             await Promise.all([fetchRequests(), fetchSystemStreamers()]);
+             const [_, success] = await Promise.all([fetchRequests(), fetchSystemStreamers()]);
+             if (success === false) {
+                 // Even if system fetch fails, we might still have local streamers, so don't hard block unless critical
+             }
         }
 
         if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -192,6 +200,11 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setLoading(true);
         const allDefs = getAllDefinitions();
+        
+        // If we have definitions but API failed, we can still show them without data?
+        // But the user requested error state if fetch fails. 
+        // We'll treat system fetch failure as minor error unless default list also empty?
+        
         const batch = allDefs.slice(startIndex, startIndex + count);
         
         setStreamers(prev => {
@@ -202,13 +215,14 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
                 return def;
             });
-            // Explicitly typing the Map to avoid type inference issues
             const newMap = new Map<string, Streamer>(prev.map(i => [i.id, i]));
             merged.forEach(i => newMap.set(i.id, i));
             return sortStreamers(Array.from(newMap.values()));
         });
 
         const CONCURRENCY_LIMIT = 4;
+        let fetchErrors = 0;
+
         const processStreamer = async (streamer: Streamer) => {
             if (signal.aborted) return;
             const existing = streamers.find(s => s.id === streamer.id);
@@ -225,6 +239,8 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     );
                     return sortStreamers(updated);
                 });
+            } else {
+                fetchErrors++;
             }
         };
 
@@ -239,8 +255,19 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await Promise.allSettled(chunk.map(processStreamer));
             await delay(200); 
         }
+        
+        if (fetchErrors === itemsToFetch.length && itemsToFetch.length > 0) {
+            // Only set error if ALL fetches in batch failed (likely network issue)
+            setError(true);
+        }
+        
         setLoading(false);
     }, [getAllDefinitions, streamers, fetchRequests, fetchSystemStreamers]);
+
+    const refresh = async () => {
+        setStreamers([]);
+        await loadBatch(0, 12);
+    };
 
     const toggleFavorite = (id: string) => {
         setLocalStreamers(prev => {
@@ -335,7 +362,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return (
         <LiveContext.Provider value={{ 
-            streamers, loading, loadBatch, totalStreamersCount: getAllDefinitions().length,
+            streamers, loading, error, refresh, loadBatch, totalStreamersCount: getAllDefinitions().length,
             addLocalStreamer, deleteStreamer, toggleFavorite, toggleNotify,
             submitStreamerRequest, getStreamerRequests, deleteStreamerRequest, acceptStreamerRequest
         }}>

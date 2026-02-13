@@ -29,7 +29,7 @@ const SkeletonGrid = () => (
 
 export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled, isAdmin }) => {
     const { t, dir } = useI18n();
-    const { streamers, loading, loadBatch, totalStreamersCount, deleteStreamer, addLocalStreamer, toggleFavorite, toggleNotify } = useLive();
+    const { streamers, loading, error, refresh, loadBatch, totalStreamersCount, deleteStreamer, addLocalStreamer, toggleFavorite, toggleNotify } = useLive();
     const { requestDelete } = useGlobalActions();
     
     const [search, setSearch] = useState('');
@@ -82,6 +82,25 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
             );
         }
     };
+
+    if (error && !loading && streamers.length === 0) {
+        return (
+            <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30 mb-2">
+                    <Icons.AlertTriangle className="w-10 h-10 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Failed to load data</h3>
+                <p className="text-gray-400">Please try again later.</p>
+                <button 
+                    onClick={refresh} 
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold text-white transition-colors flex items-center gap-2"
+                >
+                    <Icons.RotateCcw className="w-4 h-4" />
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     const filteredStreamers = streamers.filter(s => 
         !search || (s.kickUsername || '').toLowerCase().includes(search.toLowerCase())
