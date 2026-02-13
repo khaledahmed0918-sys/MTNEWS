@@ -23,14 +23,38 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve('.'),
         }
       },
+      esbuild: {
+        // Automatically remove console logs and debugger in production for smaller bundle
+        drop: mode === 'production' ? ['console', 'debugger'] : [],
+      },
       build: {
-        chunkSizeWarningLimit: 1000,
+        target: 'es2020', // Modern target for smaller code
+        outDir: 'dist',
+        chunkSizeWarningLimit: 600, // Reasonable limit
+        sourcemap: false, // Save build time and space
         rollupOptions: {
             output: {
-                manualChunks: {
-                    'vendor-core': ['react', 'react-dom'],
-                    'vendor-utils': ['framer-motion', 'lucide-react', 'firebase/app', 'firebase/database'],
-                    'vendor-maps': ['leaflet', 'react-leaflet'],
+                // Advanced chunk splitting to prevent large vendor files
+                manualChunks: (id) => {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+                            return 'vendor-react';
+                        }
+                        if (id.includes('framer-motion')) {
+                            return 'vendor-animation';
+                        }
+                        if (id.includes('leaflet') || id.includes('react-leaflet')) {
+                            return 'vendor-maps';
+                        }
+                        if (id.includes('firebase')) {
+                            return 'vendor-firebase';
+                        }
+                        if (id.includes('lucide-react')) {
+                            return 'vendor-icons';
+                        }
+                        // Group other small utilities
+                        return 'vendor-utils';
+                    }
                 }
             }
         }
