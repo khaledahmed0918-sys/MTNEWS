@@ -149,7 +149,7 @@ const AppContent: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen w-full bg-gradient-to-br from-slate-950 via-[#1a0b2e] to-slate-950 text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
+        <div className="flex h-screen w-full bg-gradient-to-br from-black via-blue-950/30 to-black text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
             <SnowEffect enabled={snowEnabled} />
 
             {/* Sidebar (Desktop & Mobile) */}

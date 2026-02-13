@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <motion.aside 
                 initial={false}
                 animate={{ width: isCollapsed ? 80 : 288 }}
-                className={`hidden md:flex flex-col h-full bg-[#080808]/80 backdrop-blur-3xl border-r border-white/5 relative z-50 py-6 px-3 justify-between shadow-2xl transition-all duration-300`}
+                className={`hidden md:flex flex-col h-full bg-slate-950/30 backdrop-blur-2xl border-r border-white/10 relative z-50 py-6 px-3 justify-between shadow-2xl transition-all duration-300`}
             >
                 <div className="flex flex-col h-full w-full overflow-hidden">
                     {/* Logo Area */}
@@ -171,7 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed inset-0 z-[1000] bg-[#050505]/95 backdrop-blur-3xl flex flex-col md:hidden pt-safe pb-safe"
+                        className="fixed inset-0 z-[1000] bg-slate-950/90 backdrop-blur-3xl flex flex-col md:hidden pt-safe pb-safe"
                     >
                         <div className="flex-1 overflow-y-auto p-4 flex flex-col">
                             {/* Mobile Header */}

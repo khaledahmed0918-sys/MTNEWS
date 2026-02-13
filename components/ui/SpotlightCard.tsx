@@ -21,10 +21,10 @@ export const SpotlightCard: React.FC<SpotlightCardProps> = ({ title, description
                 onClick={onClick}
                 whileHover={{ y: -8, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="relative w-full h-full rounded-[30px] overflow-hidden cursor-pointer border border-white/10 shadow-lg bg-[#0a0a0a] transition-all duration-300"
+                className="relative w-full h-full rounded-[30px] overflow-hidden cursor-pointer border border-white/10 shadow-lg bg-slate-900/20 backdrop-blur-xl transition-all duration-300"
             >
                 {/* Static Background Gradient */}
-                <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0a0a0a] pointer-events-none">
+                <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
                     <div className={`absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-gradient-to-br ${color} opacity-5 rounded-full blur-3xl group-hover:opacity-10 transition-opacity duration-500`} />
                     <div className={`absolute bottom-[-20%] left-[-20%] w-[80%] h-[80%] bg-gradient-to-tr ${color} opacity-5 rounded-full blur-3xl group-hover:opacity-10 transition-opacity duration-500`} />
                     

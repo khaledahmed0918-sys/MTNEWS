@@ -53,7 +53,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
             {/* Hero Section */}
             <motion.section 
                 variants={itemVariants}
-                className="relative w-full min-h-[35vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[32px] overflow-hidden border border-white/5 bg-[#0a0a0a]"
+                className="relative w-full min-h-[35vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[32px] overflow-hidden border border-white/10 bg-slate-900/30 backdrop-blur-xl"
             >
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                     <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[80%] bg-orange-600/10 blur-[80px] rounded-full opacity-60" />
@@ -107,7 +107,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                     <motion.div 
                         key={i} 
                         variants={itemVariants}
-                        className={`p-4 rounded-2xl ${stat.bg} border flex flex-col items-center justify-center gap-1 text-center hover:bg-opacity-80 transition-colors`}
+                        className={`p-4 rounded-2xl ${stat.bg} border flex flex-col items-center justify-center gap-1 text-center hover:bg-opacity-80 transition-colors backdrop-blur-md`}
                     >
                         <span className={`text-3xl font-display font-black ${stat.color}`}>{stat.value}</span>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.label}</span>
