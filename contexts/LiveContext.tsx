@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { Streamer, KickChannelInfo, KickStreamInfo, StreamerRequest } from '../types';
 import { useLocalStorage } from '../hooks';
 import { defaultStreamersList } from '../constants';
@@ -8,37 +8,26 @@ import { robustFetch } from '../utils/apiWrapper';
 interface LiveContextType {
     streamers: Streamer[];
     loading: boolean;
-    loadBatch: (startIndex: number, count: number) => Promise<void>; 
     refresh: () => Promise<void>;
     totalStreamersCount: number;
     toggleFavorite: (id: string) => void;
     toggleNotify: (id: string) => Promise<boolean>;
     submitStreamerRequest: (username: string, tags: string, characters: string) => Promise<void>;
     getStreamerRequests: () => Promise<StreamerRequest[]>;
-    deleteStreamerRequest: (id: string) => Promise<void>;
     acceptStreamerRequest: (id: string, username: string, tags: string[], characters: string[]) => Promise<void>;
+    deleteStreamerRequest: (id: string) => Promise<void>;
     addLocalStreamer: (streamer: Streamer) => void;
 }
 
 const LiveContext = createContext<LiveContextType | null>(null);
 
-// Cache to prevent re-fetching recently fetched streamers (TTL 2 minutes)
-const streamerCache = new Map<string, { data: { kickData: KickChannelInfo, streamData: KickStreamInfo }, timestamp: number }>();
-const CACHE_TTL = 120000;
-
-const fetchKickData = async (username: string, signal?: AbortSignal): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null> => {
-    const cached = streamerCache.get(username);
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-        return cached.data;
-    }
-
-    if (signal?.aborted) return null;
-    
-    // Fast Proxy with high reliability
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}`)}`;
-
+const fetchKickData = async (username: string): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null> => {
+    const t = Date.now();
     try {
-        const response = await fetch(proxyUrl, { signal });
+        // No signal passed here to prevent aborting mid-queue, we handle race conditions in state update
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}?t=${t}`)}`);
+        
+        if (response.status === 429) return null; 
         if (!response.ok) return null;
         
         const json = await response.json();
@@ -48,7 +37,7 @@ const fetchKickData = async (username: string, signal?: AbortSignal): Promise<{ 
         
         if (!user) return null;
 
-        const result = {
+        return {
             kickData: {
                 id: root.id, slug: root.slug, user_id: user.id, username: user.username, profile_pic: user.profile_pic,
                 banner: root.banner_image?.url || root.banner_image || user.banner_image || user.banner || '', 
@@ -65,10 +54,6 @@ const fetchKickData = async (username: string, signal?: AbortSignal): Promise<{ 
                 thumbnail: livestream?.thumbnail?.url || ''
             }
         };
-
-        streamerCache.set(username, { data: result, timestamp: Date.now() });
-        return result;
-
     } catch (e) {
         return null;
     }
@@ -76,14 +61,13 @@ const fetchKickData = async (username: string, signal?: AbortSignal): Promise<{ 
 
 export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [localPreferences, setLocalPreferences] = useLocalStorage<Record<string, { isFavorite: boolean, notify: boolean }>>('mtnews-streamer-prefs', {});
-    const [customStreamers, setCustomStreamers] = useLocalStorage<Streamer[]>('mtnews-custom-streamers', []);
     const [streamers, setStreamers] = useState<Streamer[]>([]);
-    const [loading, setLoading] = useState(false);
-    const abortControllerRef = useRef<AbortController | null>(null);
+    const [loading, setLoading] = useState(true); // Initial load is true
+    const [initialized, setInitialized] = useState(false);
 
-    // Prepare Static List
+    // Prepare Static List - Run once
     const getStaticStreamers = useCallback(() => {
-        const defaults = defaultStreamersList.map(url => {
+        return defaultStreamersList.map(url => {
             const username = url.split('/').pop()!;
             const pref = localPreferences[username] || { isFavorite: false, notify: false };
             return {
@@ -94,90 +78,89 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 isFavorite: pref.isFavorite,
                 notificationsEnabled: pref.notify,
                 lastUpdated: 0,
-                addedAt: 0
+                addedAt: 0,
+                kickData: undefined // Undefined means loading/skeleton
             } as Streamer;
-        });
+        }).sort((a, b) => (a.isFavorite === b.isFavorite ? 0 : a.isFavorite ? -1 : 1));
+    }, [localPreferences]);
 
-        const customs = customStreamers.map(s => {
-             const pref = localPreferences[s.id] || { isFavorite: s.isFavorite, notify: s.notificationsEnabled };
-             return { ...s, isFavorite: pref.isFavorite, notificationsEnabled: pref.notify, isSystem: false };
-        });
-
-        const combined = [...defaults, ...customs];
-        const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-
-        return unique.sort((a, b) => (a.isFavorite === b.isFavorite ? 0 : a.isFavorite ? -1 : 1));
-    }, [localPreferences, customStreamers]);
-
-    const sortStreamers = (list: Streamer[]) => {
-        return [...list].sort((a, b) => {
-            const aLoaded = !!a.kickData;
-            const bLoaded = !!b.kickData;
-            if (aLoaded !== bLoaded) return aLoaded ? -1 : 1;
-
-            if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
-            
-            const aLive = a.streamData?.is_live || false;
-            const bLive = b.streamData?.is_live || false;
-            if (aLive !== bLive) return aLive ? -1 : 1;
-            
-            if (aLive && bLive) {
-                return (b.streamData?.viewers || 0) - (a.streamData?.viewers || 0);
-            }
-            return 0; 
-        });
-    };
-
-    const loadBatch = useCallback(async (startIndex: number, count: number) => {
-        // Only abort if completely refreshing, otherwise let parallel requests fly
-        // if (abortControllerRef.current) abortControllerRef.current.abort();
+    // Fast Queue Processor
+    const processQueue = async (items: Streamer[]) => {
+        const CONCURRENCY_LIMIT = 6; // Fetch 6 at a time for speed
+        const queue = [...items];
         
-        if (!abortControllerRef.current) {
-             abortControllerRef.current = new AbortController();
-        }
-        const signal = abortControllerRef.current.signal;
+        const fetchWorker = async () => {
+            while (queue.length > 0) {
+                const streamer = queue.shift();
+                if (!streamer) break;
 
-        setLoading(true);
-        const allDefs = getStaticStreamers();
-        const batch = allDefs.slice(startIndex, startIndex + count);
-        
-        // Add Skeletons immediately
-        setStreamers(prev => {
-            const merged = [...prev];
-            batch.forEach(item => {
-                if (!merged.find(m => m.id === item.id)) merged.push(item);
-            });
-            return sortStreamers(merged);
-        });
-
-        const processStreamer = async (streamer: Streamer) => {
-            if (signal.aborted) return;
-            
-            const data = await fetchKickData(streamer.kickUsername, signal);
-            
-            if (data && !signal.aborted) {
-                setStreamers(prev => {
-                    const updated = prev.map(s => 
-                        s.id === streamer.id 
-                        ? { ...s, kickData: data.kickData, streamData: data.streamData, lastUpdated: Date.now() } 
-                        : s
-                    );
-                    return sortStreamers(updated);
-                });
+                try {
+                    const data = await fetchKickData(streamer.kickUsername);
+                    if (data) {
+                        setStreamers(prev => {
+                            // Instant update in place
+                            return prev.map(s => 
+                                s.id === streamer.id 
+                                ? { ...s, kickData: data.kickData, streamData: data.streamData, lastUpdated: Date.now() } 
+                                : s
+                            ).sort((a, b) => {
+                                // Re-sort: Favorites -> Live -> Viewers
+                                if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+                                const aLive = a.streamData?.is_live || false;
+                                const bLive = b.streamData?.is_live || false;
+                                if (aLive !== bLive) return aLive ? -1 : 1;
+                                if (aLive && bLive) return (b.streamData?.viewers || 0) - (a.streamData?.viewers || 0);
+                                return 0;
+                            });
+                        });
+                    }
+                } catch (err) {
+                    // Ignore errors, keep skeleton or old data
+                }
             }
         };
 
-        // Fire all requests at once for speed (Browser limits parallel requests automatically, no need to throttle artificially for "More" button)
-        batch.forEach(processStreamer);
-        
-        setLoading(false); // Don't wait for promises to resolve to stop "loading" indicator for infinite scroll feel
-    }, [getStaticStreamers]); 
+        const workers = Array(CONCURRENCY_LIMIT).fill(null).map(() => fetchWorker());
+        await Promise.all(workers);
+    };
+
+    // Initial Load Logic
+    useEffect(() => {
+        if (initialized) return; // Don't reload if already running
+
+        const initLoad = async () => {
+            setLoading(true);
+            const initialList = getStaticStreamers();
+            setStreamers(initialList); // Show skeletons immediately
+            
+            // Start fetching immediately
+            await processQueue(initialList);
+            setLoading(false);
+            setInitialized(true);
+        };
+
+        initLoad();
+    }, [initialized, getStaticStreamers]);
+
+    // Background Refresh Interval (Every 3 minutes)
+    useEffect(() => {
+        if (!initialized) return;
+
+        const intervalId = setInterval(() => {
+            // Refresh using current streamers list to preserve any added locals
+            // We pass the current list to the processor
+            processQueue(streamers); 
+        }, 180000); // 3 minutes
+
+        return () => clearInterval(intervalId);
+    }, [initialized, streamers]);
 
     const refresh = async () => {
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-        streamerCache.clear();
-        setStreamers([]);
-        await loadBatch(0, 12);
+        // Manual refresh
+        setLoading(true);
+        const list = streamers.length > 0 ? streamers : getStaticStreamers();
+        await processQueue(list);
+        setLoading(false);
     };
 
     const toggleFavorite = (id: string) => {
@@ -185,7 +168,17 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             ...prev,
             [id]: { ...prev[id], isFavorite: !prev[id]?.isFavorite }
         }));
-        setStreamers(prev => sortStreamers(prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s)));
+        setStreamers(prev => {
+            const updated = prev.map(s => s.id === id ? { ...s, isFavorite: !s.isFavorite } : s);
+            return updated.sort((a, b) => {
+                if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+                const aLive = a.streamData?.is_live || false;
+                const bLive = b.streamData?.is_live || false;
+                if (aLive !== bLive) return aLive ? -1 : 1;
+                if (aLive && bLive) return (b.streamData?.viewers || 0) - (a.streamData?.viewers || 0);
+                return 0;
+            });
+        });
     };
 
     const toggleNotify = async (id: string): Promise<boolean> => {
@@ -202,15 +195,14 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return true;
     };
 
+    // API Functions
     const submitStreamerRequest = async (username: string, tags: string, characters: string) => {
-        const tagsArr = tags.split(/[,،]/).map(t => t.trim()).filter(Boolean);
-        const charsArr = characters.split(/[,،]/).map(t => t.trim()).filter(Boolean);
-        
-        await robustFetch('/streamrequest/add', {
+        const res = await robustFetch('/streamrequest/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, tags: tagsArr, characters: charsArr })
+            body: JSON.stringify({ username, tags, characters })
         });
+        if (!res.ok) throw new Error("Failed to submit request");
     };
 
     const getStreamerRequests = async () => {
@@ -227,39 +219,40 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     };
 
-    const addLocalStreamer = (streamer: Streamer) => {
-        setCustomStreamers(prev => {
-            if (prev.some(s => s.id === streamer.id)) return prev;
-            return [...prev, streamer];
-        });
-        setStreamers(prev => sortStreamers([...prev, streamer]));
-    };
-
     const acceptStreamerRequest = async (id: string, username: string, tags: string[], characters: string[]) => {
         const newStreamer: Streamer = {
-            id: Math.random().toString(36).substring(7),
+            id: username,
             kickUsername: username,
             tags: tags,
             characters: characters,
             isSystem: false,
             isFavorite: false,
             notificationsEnabled: false,
-            lastUpdated: Date.now(),
+            lastUpdated: 0,
             addedAt: Date.now()
         };
-        addLocalStreamer(newStreamer);
+        // Add to state and fetch data immediately
+        setStreamers(prev => [newStreamer, ...prev]);
+        processQueue([newStreamer]); // Fetch this specific one now
         await deleteStreamerRequest(id);
     };
+
+    const addLocalStreamer = (streamer: Streamer) => {
+        setStreamers(prev => [streamer, ...prev]);
+    };
+
+    // Dummy loadBatch to satisfy interface, no longer needed logic-wise
+    const loadBatch = async (start: number, count: number) => {};
 
     return (
         <LiveContext.Provider value={{ 
             streamers, loading, refresh, loadBatch, 
-            totalStreamersCount: getStaticStreamers().length,
+            totalStreamersCount: defaultStreamersList.length,
             toggleFavorite, toggleNotify,
             submitStreamerRequest,
             getStreamerRequests,
-            deleteStreamerRequest,
             acceptStreamerRequest,
+            deleteStreamerRequest,
             addLocalStreamer
         }}>
             {children}

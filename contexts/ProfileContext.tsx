@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Icons } from '../constants';
 import { useI18n } from './I18nContext';
 import { GlassCard } from '../components/ui/GlassCard';
-import { ImageUploadControl } from '../components/ui/SharedInputs';
 import { AsyncButton } from '../components/ui/AsyncButton';
 
 interface ProfileContextType {
@@ -21,14 +20,14 @@ const ProfileContext = createContext<ProfileContextType | null>(null);
 const ProfileModal: React.FC<{ onClose: () => void; currentProfile: UserProfile | null; onSave: (name: string, avatar: string) => void }> = ({ onClose, currentProfile, onSave }) => {
     const { t } = useI18n();
     const [name, setName] = useState(currentProfile?.name || '');
-    const [avatar, setAvatar] = useState(currentProfile?.avatar || '');
 
     const handleSave = async (signal: AbortSignal) => {
-        if (!name || (!avatar && !currentProfile)) {
+        if (!name) {
             alert(t('fillAllFields'));
             throw new Error("Missing Fields");
         }
-        onSave(name, avatar || currentProfile?.avatar || '');
+        // Send empty avatar or default since we removed the input
+        onSave(name, '');
         onClose();
     };
 
@@ -43,26 +42,13 @@ const ProfileModal: React.FC<{ onClose: () => void; currentProfile: UserProfile 
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-center mb-2">
                         <div className="w-24 h-24 rounded-full bg-white/10 overflow-hidden border-2 border-dashed border-white/20 flex items-center justify-center relative group">
-                            {avatar ? (
-                                <img src={avatar} className="w-full h-full object-cover" />
-                            ) : (
-                                <Icons.UserCircle className="w-12 h-12 text-gray-500" />
-                            )}
+                            <Icons.UserCircle className="w-12 h-12 text-gray-500" />
                         </div>
                     </div>
                     
                     <div className="space-y-1">
                         <label className="text-xs text-gray-400 uppercase font-bold">{t('profileName')}</label>
                         <input value={name} onChange={e => setName(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white" />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-xs text-gray-400 uppercase font-bold">{t('profileAvatar')}</label>
-                        <ImageUploadControl 
-                            singleMode 
-                            onUrlsChange={(urls) => setAvatar(urls[0])} 
-                            onFilesChange={() => {}} 
-                        />
                     </div>
 
                     <div className="flex gap-3 mt-2">

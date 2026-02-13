@@ -47,11 +47,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [isCollapsed, setIsCollapsed] = useLocalStorage('sidebar-collapsed', false);
     const { profile, openProfileModal } = useProfile();
 
-    // Construct menu items: enabled config items + Logs if admin
+    // Construct menu items: enabled config items only. Logs removed.
     const menuItems = navConfig.filter(item => item.enabled);
-    if (isAdmin) {
-        menuItems.push({ id: 'Logs', enabled: true });
-    }
 
     return (
         <>
@@ -122,12 +119,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             onClick={openProfileModal}
                             className={`w-full flex items-center p-3 rounded-xl transition-all hover:bg-white/10 group ${isCollapsed ? 'justify-center' : 'gap-3'}`}
                         >
-                            <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/20">
-                                {profile?.avatar ? (
-                                    <img src={profile.avatar} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center"><Icons.UserPlus className="w-4 h-4 text-gray-400" /></div>
-                                )}
+                            <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/20 flex items-center justify-center">
+                                <Icons.User className="w-4 h-4 text-white" />
                             </div>
                             {!isCollapsed && (
                                 <div className="text-left overflow-hidden">
@@ -210,12 +203,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 onClick={() => { openProfileModal(); toggleMobileMenu(); }}
                                 className="w-full flex items-center p-4 rounded-xl transition-all bg-white/5 mb-4 gap-3"
                             >
-                                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/20">
-                                    {profile?.avatar ? (
-                                        <img src={profile.avatar} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center"><Icons.UserPlus className="w-5 h-5 text-gray-400" /></div>
-                                    )}
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 flex-shrink-0 border border-white/20 flex items-center justify-center">
+                                    <Icons.User className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="text-left">
                                     <div className="text-lg font-bold text-white">{profile?.name || t('createProfile')}</div>

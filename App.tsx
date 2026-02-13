@@ -37,7 +37,6 @@ const LinksPage = lazy(() => import('./sections/Links').then(module => ({ defaul
 const CreditsPage = lazy(() => import('./sections/Credits').then(module => ({ default: module.CreditsPage })));
 
 const ImagesPage = lazy(() => import('./sections/images/ImagesPage').then(module => ({ default: module.ImagesPage })));
-const LogsPage = lazy(() => import('./sections/Logs').then(module => ({ default: module.LogsPage })));
 
 // Loading Component
 const SectionLoader = () => (
@@ -84,10 +83,8 @@ const AppContent: React.FC = () => {
         }).catch(() => {});
     }, []);
 
-    // Ensure active section is enabled (Exception: Logs for Admin)
+    // Ensure active section is enabled
     useEffect(() => {
-        if (activeSection === 'Logs' && isAdmin) return;
-
         const currentConfig = navConfig.find(n => n.id === activeSection);
         if (!currentConfig || !currentConfig.enabled) {
             const firstEnabled = navConfig.find(n => n.enabled);
@@ -112,7 +109,6 @@ const AppContent: React.FC = () => {
     const handleLogout = () => {
         localStorage.removeItem('mtnews-auth-hash');
         setIsAdmin(false);
-        if (activeSection === 'Logs') setActiveSection('Home');
     };
 
     const handleAdminClick = () => {
@@ -125,11 +121,6 @@ const AppContent: React.FC = () => {
 
     // Render Section Logic
     const renderSection = () => {
-        // Exception for Logs: allow if admin
-        if (activeSection === 'Logs' && isAdmin) {
-             return <Suspense fallback={<SectionLoader />}><LogsPage /></Suspense>;
-        }
-
         // Safety check to ensure we don't render disabled sections
         const currentConfig = navConfig.find(n => n.id === activeSection);
         if (!currentConfig || !currentConfig.enabled) return null;
@@ -176,7 +167,7 @@ const AppContent: React.FC = () => {
                 className={`flex-1 h-full overflow-hidden relative flex flex-col z-10 transition-all duration-300 ease-in-out`}
             >
                 {/* Content Container - Scrollable */}
-                <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-0 md:p-8 pb-32 md:pb-8">
+                <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${activeSection === 'Analyzing' ? 'p-0' : 'p-0 md:p-8 pb-32 md:pb-8'}`}>
                     
                     {/* Map Section Special Handling: Absolute fill when active */}
                     {activeSection === 'Map' ? (
@@ -195,7 +186,7 @@ const AppContent: React.FC = () => {
                                     exit: { opacity: 0, y: -10, filter: 'blur(10px)' },
                                     transition: { duration: 0.3, ease: "easeOut" }
                                 } as any)}
-                                className={`w-full ${activeSection === 'Home' ? 'max-w-[1600px]' : 'max-w-[1900px]'} mx-auto min-h-full px-4 md:px-0 pt-4 md:pt-0`}
+                                className={`w-full ${activeSection === 'Home' ? 'max-w-[1600px]' : 'max-w-[1900px]'} mx-auto min-h-full ${activeSection === 'Analyzing' ? 'h-full' : 'px-4 md:px-0 pt-4 md:pt-0'}`}
                             >
                                 {renderSection()}
                             </motion.div>

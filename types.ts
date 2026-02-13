@@ -2,7 +2,7 @@
 export type Lang = 'en' | 'ar';
 export type Theme = 'light' | 'dark';
 
-export type Section = 'Home' | 'Map' | 'Votes' | 'Analyzing' | 'Threads' | 'Images' | 'Links' | 'Tags' | 'Credits' | 'Logs' | 'Live' | 'Clips';
+export type Section = 'Home' | 'Map' | 'Votes' | 'Analyzing' | 'Threads' | 'Images' | 'Links' | 'Tags' | 'Credits' | 'Live' | 'Clips' | 'Logs';
 
 export interface NavItem {
   id: Section;
@@ -143,12 +143,6 @@ export interface VoteCharacter {
     note?: string;
 }
 
-export interface LogEntry {
-    type: string;
-    message: string;
-    date: string;
-}
-
 // --- LIVE SECTION TYPES ---
 
 export interface KickChannelInfo {
@@ -216,7 +210,7 @@ export interface StreamerRequest {
 
 export interface UserProfile {
     name: string;
-    avatar: string; // Base64
+    avatar: string; // Kept for compatibility but unused in UI
 }
 
 export interface FormAttachment {
@@ -245,4 +239,10 @@ export interface AnalysisForm {
     createdAt: string;
     initialMessage: FormMessage;
     messages: FormMessage[];
+}
+
+export interface LogEntry {
+    type: string;
+    message: string;
+    date: string;
 }

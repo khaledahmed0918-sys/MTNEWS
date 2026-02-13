@@ -29,7 +29,7 @@ const NoResults: React.FC = () => {
 
 export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
-    const { dynamicImages, categories: dynamicCategories, requests, deleteImage, uploadImageUrl, refreshImages } = useImages(); 
+    const { dynamicImages, requests, deleteImage, uploadImageUrl, refreshImages } = useImages(); 
     const { requestDelete } = useGlobalActions();
     const [favorites] = useFavorites('images');
     
@@ -40,12 +40,6 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [filterMode, setFilterMode] = useState<'contains' | 'excludes'>('contains');
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     
-    // Loaded Image Tracking for "Bubble Up" Effect
-    const [loadedImageIds, setLoadedImageIds] = useState<Set<string>>(new Set());
-    
-    // Progressive Rendering State to avoid freeze
-    const [renderedCount, setRenderedCount] = useState(12);
-
     // Modal State
     const [modalData, setModalData] = useState<{url: string, title: string} | null>(null);
     const [showAdminModal, setShowAdminModal] = useState(false);
@@ -53,47 +47,38 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [retrySession, setRetrySession] = useState(0);
 
-    const allCategories = useMemo(() => [...imageCategories, ...dynamicCategories], [dynamicCategories]);
-
-    // Initial Logic: Scroll to top AND Trigger API
+    // Initial Logic: Start API only when this component is mounted
     useEffect(() => {
         window.scrollTo(0, 0);
-        // Requirement: Don't send API until constants/favorites are handled.
-        // Since React renders effectively "sync", putting this in useEffect ensures 
-        // the initial render with static data has occurred before we request new data.
-        const timer = setTimeout(() => {
-            refreshImages();
-        }, 500); // Small delay to prioritize local rendering first
-        return () => clearTimeout(timer);
+        refreshImages(); // Initial Load
+        const interval = setInterval(refreshImages, 5000); // Poll only when active
+        
+        return () => {
+            clearInterval(interval); // STOP API when leaving
+        };
     }, []);
 
-    // Incremental rendering loop
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setRenderedCount(prev => {
-                if (prev >= visibleCount) {
-                    clearInterval(interval);
-                    return prev;
-                }
-                return prev + 8; // Render 8 more every 100ms to avoid freeze
-            });
-        }, 100);
-        return () => clearInterval(interval);
-    }, [visibleCount, search, viewMode, activeCategory]);
-
-    // Handle Image Load Callback
-    const handleImageLoad = useCallback((id: string) => {
-        setLoadedImageIds(prev => {
-            if (prev.has(id)) return prev;
-            const next = new Set(prev);
-            next.add(id);
-            return next;
-        });
-    }, []);
+    // Combine & Sort Data: Favorites First -> Static -> API
+    const allImages = useMemo(() => {
+        const favIds = new Set(favorites);
+        
+        // 1. Separate Static Images
+        const staticFavs = imagesData.filter(img => favIds.has(img.id));
+        const staticOthers = imagesData.filter(img => !favIds.has(img.id));
+        
+        // 2. Separate API Images
+        const apiFavs = dynamicImages.filter(img => favIds.has(img.id));
+        const apiOthers = dynamicImages.filter(img => !favIds.has(img.id));
+        
+        // 3. Combine in order
+        const allFavs = [...staticFavs, ...apiFavs]; 
+        
+        return [...allFavs, ...staticOthers, ...apiOthers];
+    }, [dynamicImages, favorites]);
 
     // Filtering Logic
     const filteredImages = useMemo(() => {
-        let items = [...imagesData, ...dynamicImages]; // Combine static and dynamic
+        let items = allImages;
 
         // 1. Category Filter
         if (viewMode === 'categories' && activeCategory) {
@@ -110,42 +95,20 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             });
         }
         return items;
-    }, [dynamicImages, viewMode, activeCategory, search, filterMode]);
-
-    // Sorting Logic: Favorites -> Loaded -> Unloaded
-    const sortedImages = useMemo(() => {
-        const favIds = new Set(favorites);
-        
-        return [...filteredImages].sort((a, b) => {
-            // 1. Favorites
-            const aFav = favIds.has(a.id);
-            const bFav = favIds.has(b.id);
-            if (aFav !== bFav) return aFav ? -1 : 1;
-
-            // 2. Loaded Status (Bubble Up)
-            const aLoaded = loadedImageIds.has(a.id);
-            const bLoaded = loadedImageIds.has(b.id);
-            if (aLoaded !== bLoaded) return aLoaded ? -1 : 1;
-
-            return 0;
-        });
-    }, [filteredImages, favorites, loadedImageIds]);
+    }, [allImages, viewMode, activeCategory, search, filterMode]);
 
     // Pagination Logic
     const displayedImages = useMemo(() => {
-        return sortedImages.slice(0, Math.min(renderedCount, visibleCount));
-    }, [sortedImages, visibleCount, renderedCount]);
+        return filteredImages.slice(0, visibleCount);
+    }, [filteredImages, visibleCount]);
 
     const handleLoadMore = () => {
         setVisibleCount(prev => prev + PAGE_SIZE);
-        setRenderedCount(prev => prev + 1); // Trigger render loop
     };
 
     // Reset pagination when filters change
     useEffect(() => {
         setVisibleCount(PAGE_SIZE);
-        setRenderedCount(12);
-        setLoadedImageIds(new Set()); // Reset bubble up on filter change
     }, [search, viewMode, activeCategory]);
 
     const handleDeleteClick = (e: React.MouseEvent, img: ImageData) => {
@@ -165,7 +128,6 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
     const handleReloadAll = () => {
         setRetrySession(prev => prev + 1);
-        setLoadedImageIds(new Set());
         refreshImages();
     };
 
@@ -270,9 +232,9 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                  {/* CATEGORY VIEW */}
                  {viewMode === 'categories' && !activeCategory ? (
                      <motion.div key="categories" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allCategories.map(cat => (
+                        {imageCategories.map(cat => (
                             <div key={cat.id} className="h-64">
-                                <CategoryCard category={cat} allImages={filteredImages} onClick={() => setActiveCategory(cat)} />
+                                <CategoryCard category={cat} allImages={allImages} onClick={() => setActiveCategory(cat)} />
                             </div>
                         ))}
                      </motion.div>
@@ -291,22 +253,19 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             </div>
                         )}
                         
-                        {/* Images Grid - Layout enabled for smooth reordering */}
-                        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            <AnimatePresence>
-                                {displayedImages.map(img => (
-                                    <LazyImageCard 
-                                        key={img.id} 
-                                        img={img} 
-                                        onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
-                                        onErrorChange={() => {}}
-                                        retryKey={retrySession}
-                                        onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
-                                        onLoad={() => handleImageLoad(img.id)}
-                                    />
-                                ))}
-                            </AnimatePresence>
-                        </motion.div>
+                        {/* Images Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {displayedImages.map(img => (
+                                <LazyImageCard 
+                                    key={img.id} 
+                                    img={img} 
+                                    onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
+                                    onErrorChange={() => {}}
+                                    retryKey={retrySession}
+                                    onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
+                                />
+                            ))}
+                        </div>
 
                         {/* Load More Button */}
                         {visibleCount < filteredImages.length && (

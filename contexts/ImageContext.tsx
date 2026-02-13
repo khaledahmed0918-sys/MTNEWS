@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { ImageData, ImageCategory, ImageRequest } from '../types';
 import { useLocalStorage } from '../hooks';
 import { API_BASE } from '../constants';
@@ -7,22 +7,23 @@ import { robustFetch } from '../utils/apiWrapper';
 
 interface ImageContextType {
     dynamicImages: ImageData[];
-    categories: ImageCategory[];
+    categories: ImageCategory[]; 
     requests: ImageRequest[]; 
     myRequestIds: string[]; 
     loading: boolean;
     refreshImages: () => void;
     refreshRequests: () => void;
-    refreshCategories: () => void;
     uploadImageFile: (file: File, tags: string, signal?: AbortSignal) => Promise<void>;
     uploadImageUrl: (url: string, tags: string, signal?: AbortSignal) => Promise<void>;
     updateImageTags: (id: string, tags: string, signal?: AbortSignal) => Promise<void>;
     deleteImage: (id: string, signal?: AbortSignal) => Promise<void>;
     submitImageRequest: (files: File[], urls: string[], tags: string, signal?: AbortSignal) => Promise<void>;
     deleteImageRequest: (requestId: string, signal?: AbortSignal) => Promise<void>;
+    
+    // Category methods
     addCategory: (name: string, tags: string[], signal?: AbortSignal) => Promise<void>;
-    removeCategory: (id: string, signal?: AbortSignal) => Promise<void>;
     updateCategoryTags: (id: string, tags: string[], signal?: AbortSignal) => Promise<void>;
+    removeCategory: (id: string, signal?: AbortSignal) => Promise<void>;
 }
 
 const ImageContext = createContext<ImageContextType | null>(null);
@@ -36,7 +37,7 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Fetch Data
+    // Fetch Data - Exposed to be called manually
     const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
             const resImages = await robustFetch('/images', { signal, skipErrorLog: true, retryForever: true });
@@ -62,18 +63,6 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }, []);
 
-    const fetchCategories = useCallback(async (signal?: AbortSignal) => {
-        try {
-            const res = await robustFetch('/icategorys', { signal, skipErrorLog: true, retryForever: true });
-            if (res.ok) {
-                const data = await res.json();
-                setCategories(data);
-            }
-        } catch (e) {
-            // Silent fail
-        }
-    }, []);
-
     const fetchRequests = useCallback(async (signal?: AbortSignal) => {
         try {
             const res = await robustFetch('/images/requests', { signal, skipErrorLog: true, retryForever: true });
@@ -94,21 +83,23 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }, []);
 
-    useEffect(() => {
-        abortControllerRef.current = new AbortController();
-        const signal = abortControllerRef.current.signal;
+    const fetchCategories = useCallback(async (signal?: AbortSignal) => {
+        try {
+            const res = await robustFetch('/icategorys', { signal, skipErrorLog: true, retryForever: true });
+            if (res.ok) {
+                const data = await res.json();
+                setCategories(data);
+            }
+        } catch (e) {
+            // Silent fail
+        }
+    }, []);
 
-        fetchRequests(signal);
-        fetchCategories(signal);
-
-        return () => {
-            if (abortControllerRef.current) abortControllerRef.current.abort();
-        };
-    }, [fetchRequests, fetchCategories]);
-
-    const refreshImages = () => fetchData();
+    const refreshImages = () => {
+        fetchData();
+        fetchCategories();
+    };
     const refreshRequests = () => fetchRequests();
-    const refreshCategories = () => fetchCategories();
 
     const uploadImageUrl = async (url: string, tags: string, signal?: AbortSignal) => {
         const res = await robustFetch('/upload/url', {
@@ -221,7 +212,6 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
         if (!res.ok) throw new Error("Failed to remove category");
         setCategories(prev => prev.filter(c => c.id !== id));
-        await fetchCategories(signal);
     };
 
     const updateCategoryTags = async (id: string, tags: string[], signal?: AbortSignal) => {
@@ -231,9 +221,14 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             body: JSON.stringify({ tags }),
             signal
         });
-        if (!res.ok) throw new Error("Failed to update category tags");
+        if (!res.ok) throw new Error("Failed to update category");
         await fetchCategories(signal);
     };
+
+    // Trigger initial fetch of categories
+    useEffect(() => {
+        fetchCategories();
+    }, []);
 
     return (
         <ImageContext.Provider value={{ 
@@ -244,7 +239,6 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             loading, 
             refreshImages,
             refreshRequests,
-            refreshCategories,
             uploadImageFile,
             uploadImageUrl,
             updateImageTags,
@@ -252,8 +246,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             submitImageRequest,
             deleteImageRequest,
             addCategory,
-            removeCategory,
-            updateCategoryTags
+            updateCategoryTags,
+            removeCategory
         }}>
             {children}
         </ImageContext.Provider>
