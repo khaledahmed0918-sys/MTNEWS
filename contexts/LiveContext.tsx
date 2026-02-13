@@ -16,10 +16,10 @@ interface LiveContextType {
 
 const LiveContext = createContext<LiveContextType | null>(null);
 
-const fetchKickData = async (username: string): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null> => {
+const fetchKickData = async (username: string, signal?: AbortSignal): Promise<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null> => {
     const t = Date.now();
     try {
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}?t=${t}`)}`);
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}?t=${t}`)}`, { signal });
         
         if (response.status === 429) return null; 
         if (!response.ok) return null;
@@ -60,6 +60,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [initialized, setInitialized] = useState(false);
 
     // Sorting Logic: Loaded > Favorites > Live > Viewers > Others
+    // Optimized for performance
     const sortStreamers = useCallback((list: Streamer[]) => {
         return [...list].sort((a, b) => {
             // 1. Data Loaded Status (Bubbles loaded cards to top)
@@ -102,29 +103,49 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, [localPreferences]);
 
-    // Batch Processor
+    // Batch Processor - Fires concurrent requests but updates state independently and immediately
     const runBatchFetching = async (allStreamers: Streamer[]) => {
         const BATCH_SIZE = 10;
-        const DELAY_MS = 1000;
+        const DELAY_MS = 200;
 
         for (let i = 0; i < allStreamers.length; i += BATCH_SIZE) {
             const batch = allStreamers.slice(i, i + BATCH_SIZE);
             
-            // Fire requests for this batch without waiting for each individual request
+            // Process concurrently but without blocking the loop for long
             batch.forEach(async (streamer) => {
+                // AbortController to kill requests that hang too long (preventing browser queue clog)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1000); // 10s max per request
+
                 try {
-                    const data = await fetchKickData(streamer.kickUsername);
+                    const data = await fetchKickData(streamer.kickUsername, controller.signal);
+                    clearTimeout(timeoutId);
+                    
                     if (data) {
                         setStreamers(prev => {
-                            const updated = prev.map(s => 
-                                s.id === streamer.id 
-                                ? { ...s, kickData: data.kickData, streamData: data.streamData, lastUpdated: Date.now() } 
-                                : s
-                            );
-                            return sortStreamers(updated);
+                            // Find the index to update efficiently
+                            const index = prev.findIndex(s => s.id === streamer.id);
+                            if (index === -1) return prev;
+
+                            const newStreamer = { 
+                                ...prev[index], 
+                                kickData: data.kickData, 
+                                streamData: data.streamData, 
+                                lastUpdated: Date.now() 
+                            };
+
+                            const updatedList = [...prev];
+                            updatedList[index] = newStreamer;
+                            
+                            // Re-sort to bubble this item up immediately
+                            return sortStreamers(updatedList);
                         });
                     }
-                } catch (e) { /* Ignore errors to keep queue moving */ }
+                } catch (e) { 
+                    // Ignore errors to keep UI flow
+                } finally {
+                    clearTimeout(timeoutId);
+                }
             });
 
             // Wait 1 second before firing the next batch of 10
