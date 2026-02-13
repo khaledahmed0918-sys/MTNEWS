@@ -1,15 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
-import { Streamer, KickChannelInfo, KickStreamInfo, StreamerRequest } from '../../types';
+import { Streamer } from '../../types';
 import { GlassCard } from '../../components/ui/GlassCard';
-import { AsyncButton } from '../../components/ui/AsyncButton';
-import { useLive } from '../../contexts/LiveContext';
-import { useToast } from '../../contexts/NotificationContext';
-import { logAction } from '../../utils/logging';
 import { RobustImage } from '../../components/ui/RobustImage';
+import { motion } from 'framer-motion';
 
 // --- SKELETON CARD ---
 const StreamerCardSkeleton: React.FC = () => (
@@ -33,208 +29,6 @@ const StreamerCardSkeleton: React.FC = () => (
     </GlassCard>
 );
 
-// --- REQUEST STREAMER MODAL (USER) ---
-export const RequestStreamerModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { t } = useI18n();
-    const { submitStreamerRequest } = useLive();
-    const { addToast } = useToast();
-    const [username, setUsername] = useState('');
-    const [tags, setTags] = useState('');
-    const [characters, setCharacters] = useState('');
-
-    const handleSubmit = async (signal: AbortSignal) => {
-        if (!username || username.length < 3) return;
-        
-        let cleanUser = username.trim();
-        const urlMatch = cleanUser.match(/kick\.com\/([^\/]+)/);
-        if (urlMatch) cleanUser = urlMatch[1];
-
-        await submitStreamerRequest(cleanUser, tags, characters);
-        addToast("Streamer Requested Successfully", 'success');
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[10000] flex items-center justify-center p-4">
-            <GlassCard className="w-full max-w-md" noRound>
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-white">{t('requestImage')}</h3>
-                    <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
-                </div>
-                <div className="flex flex-col gap-4">
-                    <div className="space-y-1">
-                        <label className="text-xs text-gray-400 font-bold uppercase">{t('kickUrlOrUser')}</label>
-                        <input value={username} onChange={e => setUsername(e.target.value)} placeholder="e.g. kick.com/username" className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-xs text-gray-400 font-bold uppercase">{t('streamerTags')}</label>
-                        <input value={tags} onChange={e => setTags(e.target.value)} placeholder="Roleplay, Gangs" className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-xs text-gray-400 font-bold uppercase">{t('characters')} (Optional)</label>
-                        <input value={characters} onChange={e => setCharacters(e.target.value)} placeholder="Char Name" className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white" />
-                    </div>
-                    <AsyncButton onClick={handleSubmit} label={t('add')} variant="success" className="w-full mt-2" />
-                </div>
-            </GlassCard>
-        </div>
-    );
-};
-
-// --- ADMIN REQUESTS MODAL ---
-export const AdminStreamerRequestsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { t } = useI18n();
-    const { getStreamerRequests, acceptStreamerRequest, deleteStreamerRequest } = useLive();
-    const { addToast } = useToast();
-    const [requests, setRequests] = useState<StreamerRequest[]>([]);
-    
-    useEffect(() => {
-        getStreamerRequests().then(setRequests);
-    }, []);
-
-    const handleAccept = async (signal: AbortSignal, req: StreamerRequest) => {
-        await acceptStreamerRequest(req.id, req.username, req.tags, req.characters);
-        setRequests(prev => prev.filter(r => r.id !== req.id));
-        addToast(t('requestAccepted'), 'success');
-    };
-
-    const handleDeny = async (signal: AbortSignal, id: string) => {
-        await deleteStreamerRequest(id);
-        setRequests(prev => prev.filter(r => r.id !== id));
-        logAction('admin', 'Denied Streamer Request', id);
-        addToast(t('requestDenied'), 'info');
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[10000] flex items-center justify-center p-4">
-            <GlassCard className="w-full max-w-2xl h-[80vh] flex flex-col" noRound>
-                <div className="flex justify-between items-center mb-6 shrink-0">
-                    <h3 className="text-xl font-bold text-white">{t('pendingRequests')}</h3>
-                    <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
-                </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3">
-                    {requests.length === 0 && <div className="text-center text-gray-500 py-10">{t('noResults')}</div>}
-                    {requests.map(req => (
-                        <div key={req.id} className="p-4 bg-white/5 border border-white/10 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <h4 className="font-bold text-white text-lg">{req.username}</h4>
-                                <div className="flex gap-2 text-xs text-gray-400 mt-1">
-                                    <span>{new Date(req.createdAt).toLocaleDateString()}</span>
-                                    <span>•</span>
-                                    <span>{req.tags.join(', ') || 'No Tags'}</span>
-                                </div>
-                                {req.characters && req.characters.length > 0 && (
-                                    <div className="text-xs text-orange-400 mt-1">Chars: {req.characters.join(', ')}</div>
-                                )}
-                            </div>
-                            <div className="flex gap-2">
-                                <a href={`https://kick.com/${req.username}`} target="_blank" className="p-2 bg-white/10 rounded-lg hover:bg-white/20 flex items-center justify-center text-white"><Icons.ExternalLink className="w-5 h-5" /></a>
-                                <AsyncButton onClick={(s) => handleAccept(s, req)} label={t('accept')} variant="success" className="px-4 py-2 text-sm" />
-                                <AsyncButton onClick={(s) => handleDeny(s, req.id)} label={t('deny')} variant="danger" className="px-4 py-2 text-sm" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </GlassCard>
-        </div>
-    );
-};
-
-// --- ADD STREAMER MODAL (LOCAL) ---
-export const AddStreamerModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { t } = useI18n();
-    const { addLocalStreamer } = useLive();
-    const { addToast } = useToast();
-    const [query, setQuery] = useState('');
-    const [status, setStatus] = useState<'idle' | 'searching' | 'verified' | 'failed'>('idle');
-    const [foundData, setFoundData] = useState<{ kickData: KickChannelInfo, streamData: KickStreamInfo } | null>(null);
-    const [customName, setCustomName] = useState('');
-    const [tags, setTags] = useState('');
-    const [notes, setNotes] = useState('');
-
-    const handleSearch = async () => {
-        if(!query || query.length < 3) return;
-        setStatus('searching');
-        setFoundData(null);
-        let username = query.trim();
-        const urlMatch = username.match(/kick\.com\/([^\/]+)/);
-        if (urlMatch) username = urlMatch[1];
-        
-        try {
-            const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://kick.com/api/v2/channels/${username}`)}`);
-            if (!response.ok) throw new Error("Not Found");
-            const json = await response.json();
-            const root = json.data ? json.data : json; 
-            if (!root.user) throw new Error("No user");
-
-            setFoundData({
-                kickData: {
-                    id: root.id, slug: root.slug, user_id: root.user.id, username: root.user.username, profile_pic: root.user.profile_pic,
-                    banner: root.banner_image?.url || root.banner_image || '', followers_count: root.followers_count, created_at: root.created_at, bio: root.user.bio || ''
-                },
-                streamData: { id: 0, is_live: false, viewers: 0, start_time: '', title: '', category_name: '', category_icon: '', thumbnail: '' }
-            });
-            setStatus('verified');
-        } catch (e) {
-            setStatus('failed');
-        }
-    };
-
-    const handleConfirm = async () => {
-        if (!foundData) return;
-        addLocalStreamer({
-            id: Math.random().toString(36).substring(7),
-            kickUsername: foundData.kickData.slug,
-            kickData: foundData.kickData,
-            streamData: foundData.streamData,
-            customTitle: customName,
-            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-            notes: notes,
-            isFavorite: false,
-            notificationsEnabled: false,
-            lastUpdated: Date.now(),
-            addedAt: Date.now(),
-            isSystem: false
-        });
-        addToast(t('streamerAdded'), 'success');
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[10000] flex items-center justify-center p-4">
-            <GlassCard className="w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" noRound>
-                 <div className="flex justify-between items-center mb-6 shrink-0">
-                    <h3 className="text-xl font-bold text-white">{t('addStreamer')}</h3>
-                    <button onClick={onClose}><Icons.X className="w-6 h-6 text-gray-400" /></button>
-                </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-1 flex flex-col gap-4">
-                    <div className="relative">
-                        <input value={query} onChange={e => { setQuery(e.target.value); setStatus('idle'); }} onKeyDown={e => e.key === 'Enter' && handleSearch()} placeholder={t('kickUrlOrUser')} className="w-full p-4 pr-12 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-orange-500" />
-                        <button onClick={handleSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white/10 rounded-lg hover:bg-white/20 text-white">
-                            {status === 'searching' ? <Icons.Loader2 className="w-4 h-4 animate-spin" /> : <Icons.Search className="w-4 h-4" />}
-                        </button>
-                    </div>
-                    {status === 'failed' && <p className="text-red-500 text-sm font-bold">{t('streamerNotFound')}</p>}
-                    <AnimatePresence>
-                        {foundData && (
-                            <motion.div {...({ initial: { height: 0, opacity: 0 }, animate: { height: 'auto', opacity: 1 } } as any)} className="flex items-center gap-4 p-4 bg-green-500/10 border border-green-500/30 rounded-xl overflow-hidden">
-                                <img src={foundData.kickData.profile_pic} className="w-12 h-12 rounded-full border border-white/20" />
-                                <div><h4 className="font-bold text-white">{foundData.kickData.username}</h4><span className="text-xs text-green-400 font-bold">{t('verified')}</span></div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    <div className={`flex flex-col gap-3 transition-opacity ${!foundData ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                         <div className="space-y-1"><label className="text-xs text-gray-400 uppercase font-bold">{t('customName')}</label><input value={customName} onChange={e => setCustomName(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white" /></div>
-                         <div className="space-y-1"><label className="text-xs text-gray-400 uppercase font-bold">{t('streamerTags')}</label><input value={tags} onChange={e => setTags(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white" placeholder="Roleplay, Gangs" /></div>
-                         <div className="space-y-1"><label className="text-xs text-gray-400 uppercase font-bold">{t('streamerNotes')}</label><textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white min-h-[80px]" /></div>
-                    </div>
-                    <AsyncButton onClick={handleConfirm} disabled={!foundData} label={t('add')} variant="success" className="w-full py-4 mt-2" />
-                </div>
-            </GlassCard>
-        </div>
-    );
-};
-
 // --- STREAMER CARD ---
 export const StreamerCard: React.FC<{ 
     streamer: Streamer, 
@@ -244,7 +38,6 @@ export const StreamerCard: React.FC<{
     snowEnabled: boolean 
 }> = ({ streamer, onClick, onToggleFavorite, onToggleNotify, snowEnabled }) => {
     const { t } = useI18n();
-    // If we don't have basic fetch data yet, show skeleton
     if (!streamer.kickData) return <StreamerCardSkeleton />;
 
     const isLive = streamer.streamData?.is_live;
@@ -273,7 +66,6 @@ export const StreamerCard: React.FC<{
             </div>
             <div className="px-4 pb-4 relative flex-1 flex flex-col">
                 <div className="flex justify-between items-end -mt-8 mb-2">
-                    {/* Avatar: Uses RobustImage for auto-retry */}
                     <div className={`w-16 h-16 rounded-full overflow-hidden bg-black transition-shadow duration-300 ${isLive ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''} border-4 border-[#1a1a1a]`}>
                         <RobustImage src={avatar} className="w-full h-full object-cover" />
                     </div>
@@ -289,7 +81,6 @@ export const StreamerCard: React.FC<{
                     </div>
                 </div>
                 
-                {/* Replaced Thumbnail with Stream Title when Live */}
                 {isLive ? (
                     <div className="mb-3 min-h-[2.5em] p-2 rounded bg-white/5 border border-white/10">
                         <p className="text-xs font-bold text-white line-clamp-2">{streamer.streamData?.title || t('streamTitle')}</p>
@@ -339,7 +130,6 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
                 className={`w-full max-w-4xl bg-neutral-900 border border-white/10 rounded-[30px] overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh] ${snowEnabled ? 'frosted-effect' : ''}`} 
                 onClick={e => e.stopPropagation()}
             >
-                {/* Banner Header */}
                 <div className="h-64 w-full relative shrink-0">
                     <RobustImage src={banner} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-transparent to-transparent"></div>
@@ -361,7 +151,6 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-12">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Left Col: Stats & Bio */}
                         <div className="md:col-span-2 flex flex-col gap-6">
                             {isLive && (
                                 <div className="p-4 rounded-2xl bg-green-900/10 border border-green-500/20">
@@ -382,7 +171,6 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
                                 <p className="text-gray-400 leading-relaxed whitespace-pre-wrap">{bio || t('noBio')}</p>
                             </div>
 
-                            {/* Tags */}
                             <div className="flex flex-wrap gap-2">
                                 {streamer.tags.map((tag, i) => (
                                     <span key={i} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 font-medium">{tag}</span>
@@ -390,7 +178,6 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
                             </div>
                         </div>
 
-                        {/* Right Col: Info & Actions */}
                         <div className="flex flex-col gap-6">
                             {characters.length > 0 && (
                                 <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
@@ -416,12 +203,6 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
                                     )}
                                 </div>
                             </div>
-
-                            {!streamer.isSystem && (
-                                <button onClick={onDelete} className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
-                                    <Icons.Trash2 className="w-5 h-5" /> {t('removeFromList')}
-                                </button>
-                            )}
                         </div>
                     </div>
                 </div>
