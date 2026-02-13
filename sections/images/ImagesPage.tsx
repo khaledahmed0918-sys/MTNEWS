@@ -1,7 +1,8 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, imagesData, appConfig } from '../../constants';
+import { imageCategories } from '../../constants/categories'; // Import Static Categories
 import { ImageData, ImageCategory } from '../../types';
 import { useI18n } from '../../contexts/I18nContext';
 import { useGlobalActions } from '../../contexts/GlobalActionsContext';
@@ -9,7 +10,8 @@ import { useImages } from '../../contexts/ImageContext';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { LazyImageCard } from './LazyImageCard';
 import { DownloadableMediaModal, ImageManagementModal, UserImageRequestModal, AdminPendingRequestsModal } from '../../components/modals/MediaModals';
-import { CategoryAdminModal, CategoryCard } from './ImageCategoryComponents';
+import { CategoryCard } from './ImageCategoryComponents';
+import { useFavorites } from '../../hooks';
 
 const PAGE_SIZE = 20; 
 
@@ -27,8 +29,9 @@ const NoResults: React.FC = () => {
 
 export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const { t, dir } = useI18n();
-    const { dynamicImages, categories, requests, loading, deleteImage, uploadImageUrl } = useImages(); 
+    const { dynamicImages, categories: dynamicCategories, requests, deleteImage, uploadImageUrl, refreshImages } = useImages(); 
     const { requestDelete } = useGlobalActions();
+    const [favorites] = useFavorites('images');
     
     // UI State
     const [viewMode, setViewMode] = useState<'all' | 'categories'>('all');
@@ -37,27 +40,60 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [filterMode, setFilterMode] = useState<'contains' | 'excludes'>('contains');
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     
+    // Loaded Image Tracking for "Bubble Up" Effect
+    const [loadedImageIds, setLoadedImageIds] = useState<Set<string>>(new Set());
+    
+    // Progressive Rendering State to avoid freeze
+    const [renderedCount, setRenderedCount] = useState(12);
+
     // Modal State
     const [modalData, setModalData] = useState<{url: string, title: string} | null>(null);
     const [showAdminModal, setShowAdminModal] = useState(false);
-    const [showCategoryTool, setShowCategoryTool] = useState(false);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [retrySession, setRetrySession] = useState(0);
 
-    // Scroll to top on mount
+    const allCategories = useMemo(() => [...imageCategories, ...dynamicCategories], [dynamicCategories]);
+
+    // Initial Logic: Scroll to top AND Trigger API
     useEffect(() => {
         window.scrollTo(0, 0);
+        // Requirement: Don't send API until constants/favorites are handled.
+        // Since React renders effectively "sync", putting this in useEffect ensures 
+        // the initial render with static data has occurred before we request new data.
+        const timer = setTimeout(() => {
+            refreshImages();
+        }, 500); // Small delay to prioritize local rendering first
+        return () => clearTimeout(timer);
     }, []);
 
-    // Combine Data
-    const allImages = useMemo(() => {
-        return [...imagesData, ...dynamicImages];
-    }, [dynamicImages]);
+    // Incremental rendering loop
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setRenderedCount(prev => {
+                if (prev >= visibleCount) {
+                    clearInterval(interval);
+                    return prev;
+                }
+                return prev + 8; // Render 8 more every 100ms to avoid freeze
+            });
+        }, 100);
+        return () => clearInterval(interval);
+    }, [visibleCount, search, viewMode, activeCategory]);
+
+    // Handle Image Load Callback
+    const handleImageLoad = useCallback((id: string) => {
+        setLoadedImageIds(prev => {
+            if (prev.has(id)) return prev;
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+    }, []);
 
     // Filtering Logic
     const filteredImages = useMemo(() => {
-        let items = allImages;
+        let items = [...imagesData, ...dynamicImages]; // Combine static and dynamic
 
         // 1. Category Filter
         if (viewMode === 'categories' && activeCategory) {
@@ -74,20 +110,42 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             });
         }
         return items;
-    }, [allImages, viewMode, activeCategory, search, filterMode]);
+    }, [dynamicImages, viewMode, activeCategory, search, filterMode]);
+
+    // Sorting Logic: Favorites -> Loaded -> Unloaded
+    const sortedImages = useMemo(() => {
+        const favIds = new Set(favorites);
+        
+        return [...filteredImages].sort((a, b) => {
+            // 1. Favorites
+            const aFav = favIds.has(a.id);
+            const bFav = favIds.has(b.id);
+            if (aFav !== bFav) return aFav ? -1 : 1;
+
+            // 2. Loaded Status (Bubble Up)
+            const aLoaded = loadedImageIds.has(a.id);
+            const bLoaded = loadedImageIds.has(b.id);
+            if (aLoaded !== bLoaded) return aLoaded ? -1 : 1;
+
+            return 0;
+        });
+    }, [filteredImages, favorites, loadedImageIds]);
 
     // Pagination Logic
     const displayedImages = useMemo(() => {
-        return filteredImages.slice(0, visibleCount);
-    }, [filteredImages, visibleCount]);
+        return sortedImages.slice(0, Math.min(renderedCount, visibleCount));
+    }, [sortedImages, visibleCount, renderedCount]);
 
     const handleLoadMore = () => {
         setVisibleCount(prev => prev + PAGE_SIZE);
+        setRenderedCount(prev => prev + 1); // Trigger render loop
     };
 
     // Reset pagination when filters change
     useEffect(() => {
         setVisibleCount(PAGE_SIZE);
+        setRenderedCount(12);
+        setLoadedImageIds(new Set()); // Reset bubble up on filter change
     }, [search, viewMode, activeCategory]);
 
     const handleDeleteClick = (e: React.MouseEvent, img: ImageData) => {
@@ -107,6 +165,8 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
     const handleReloadAll = () => {
         setRetrySession(prev => prev + 1);
+        setLoadedImageIds(new Set());
+        refreshImages();
     };
 
     return (
@@ -150,7 +210,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                              <motion.button
                                 onClick={() => setShowRequestModal(true)}
                                 className="px-4 py-3 bg-green-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg border border-white/10"
-                                {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
+                                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                             >
                                 <Icons.Plus className="w-5 h-5" />
                                 <span className="hidden md:inline">{t('requestImage')}</span>
@@ -162,22 +222,15 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                 <motion.button
                                     onClick={() => setShowPendingModal(true)}
                                     className="px-4 py-3 bg-indigo-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg border border-white/10 relative"
-                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
+                                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                 >
                                     <Icons.List className="w-5 h-5" />
                                     {requests.length > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">{requests.length}</span>}
                                 </motion.button>
                                 <motion.button
-                                    onClick={() => setShowCategoryTool(true)}
-                                    className="px-4 py-3 bg-purple-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg border border-white/10"
-                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
-                                >
-                                    <Icons.Layers className="w-5 h-5" />
-                                </motion.button>
-                                <motion.button
                                     onClick={() => setShowAdminModal(true)}
                                     className="px-4 py-3 bg-blue-600 rounded-full text-white font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg border border-white/10"
-                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
+                                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                 >
                                     <Icons.Edit className="w-5 h-5" />
                                 </motion.button>
@@ -198,7 +251,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             >
                                 {viewMode === mode && (
                                     <motion.div
-                                        {...({ layoutId: "activeTabBg" } as any)}
+                                        layoutId="activeTabBg"
                                         className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 rounded-full shadow-[0_0_20px_rgba(234,88,12,0.5)]"
                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                     />
@@ -216,16 +269,16 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
              <AnimatePresence mode="wait">
                  {/* CATEGORY VIEW */}
                  {viewMode === 'categories' && !activeCategory ? (
-                     <motion.div key="categories" {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {categories.length > 0 ? categories.map(cat => (
+                     <motion.div key="categories" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {allCategories.map(cat => (
                             <div key={cat.id} className="h-64">
-                                <CategoryCard category={cat} allImages={allImages} onClick={() => setActiveCategory(cat)} />
+                                <CategoryCard category={cat} allImages={filteredImages} onClick={() => setActiveCategory(cat)} />
                             </div>
-                        )) : <div className="col-span-full"><NoResults /></div>}
+                        ))}
                      </motion.div>
                  ) : (
                      /* IMAGE GRID VIEW (All Images OR Specific Category) */
-                     <motion.div key="images" {...({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } } as any)} className="flex flex-col gap-4">
+                     <motion.div key="images" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-4">
                         {activeCategory && (
                             <div className="flex items-center gap-4 mb-2 p-2 bg-white/5 rounded-2xl border border-white/10 w-fit pr-6">
                                 <button onClick={() => setActiveCategory(null)} className="p-3 bg-black/40 rounded-xl hover:bg-white/10 border border-white/10 transition-colors group">
@@ -238,26 +291,29 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                             </div>
                         )}
                         
-                        {/* Images Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {displayedImages.map(img => (
-                                <LazyImageCard 
-                                    key={img.id} 
-                                    img={img} 
-                                    onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
-                                    onErrorChange={() => {}}
-                                    retryKey={retrySession}
-                                    onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
-                                />
-                            ))}
-                        </div>
+                        {/* Images Grid - Layout enabled for smooth reordering */}
+                        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <AnimatePresence>
+                                {displayedImages.map(img => (
+                                    <LazyImageCard 
+                                        key={img.id} 
+                                        img={img} 
+                                        onClick={() => setModalData({ url: img.url, title: img.tags.join(', ') })} 
+                                        onErrorChange={() => {}}
+                                        retryKey={retrySession}
+                                        onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
+                                        onLoad={() => handleImageLoad(img.id)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
 
                         {/* Load More Button */}
                         {visibleCount < filteredImages.length && (
                             <div className="flex justify-center py-8">
                                 <motion.button 
                                     onClick={handleLoadMore}
-                                    {...({ whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } as any)}
+                                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                     className="px-8 py-3 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/10 rounded-full font-bold text-white transition-all shadow-lg flex items-center gap-2"
                                 >
                                     <span>More</span>
@@ -274,7 +330,6 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
              <AnimatePresence>{modalData && <DownloadableMediaModal mediaUrl={modalData.url} mediaType="image" title={modalData.title} onClose={() => setModalData(null)} />}</AnimatePresence>
              <AnimatePresence>{showAdminModal && isAdmin && <ImageManagementModal onClose={() => setShowAdminModal(false)} />}</AnimatePresence>
-             <AnimatePresence>{showCategoryTool && isAdmin && <CategoryAdminModal onClose={() => setShowCategoryTool(false)} allImages={allImages} />}</AnimatePresence>
              <AnimatePresence>{showRequestModal && <UserImageRequestModal onClose={() => setShowRequestModal(false)} />}</AnimatePresence>
              <AnimatePresence>{showPendingModal && isAdmin && <AdminPendingRequestsModal onClose={() => setShowPendingModal(false)} />}</AnimatePresence>
         </div>

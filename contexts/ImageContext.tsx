@@ -13,15 +13,16 @@ interface ImageContextType {
     loading: boolean;
     refreshImages: () => void;
     refreshRequests: () => void;
+    refreshCategories: () => void;
     uploadImageFile: (file: File, tags: string, signal?: AbortSignal) => Promise<void>;
     uploadImageUrl: (url: string, tags: string, signal?: AbortSignal) => Promise<void>;
     updateImageTags: (id: string, tags: string, signal?: AbortSignal) => Promise<void>;
     deleteImage: (id: string, signal?: AbortSignal) => Promise<void>;
+    submitImageRequest: (files: File[], urls: string[], tags: string, signal?: AbortSignal) => Promise<void>;
+    deleteImageRequest: (requestId: string, signal?: AbortSignal) => Promise<void>;
     addCategory: (name: string, tags: string[], signal?: AbortSignal) => Promise<void>;
     removeCategory: (id: string, signal?: AbortSignal) => Promise<void>;
     updateCategoryTags: (id: string, tags: string[], signal?: AbortSignal) => Promise<void>;
-    submitImageRequest: (files: File[], urls: string[], tags: string, signal?: AbortSignal) => Promise<void>;
-    deleteImageRequest: (requestId: string, signal?: AbortSignal) => Promise<void>;
 }
 
 const ImageContext = createContext<ImageContextType | null>(null);
@@ -35,14 +36,10 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Optimized Data Fetching: Parallel Requests
+    // Fetch Data
     const fetchData = useCallback(async (signal?: AbortSignal) => {
         try {
-            // Fetch Images and Categories in PARALLEL for maximum speed
-            const [resImages, resCats] = await Promise.all([
-                robustFetch('/images', { signal, skipErrorLog: true, retryForever: true }),
-                robustFetch('/icategorys', { signal, skipErrorLog: true, retryForever: true })
-            ]);
+            const resImages = await robustFetch('/images', { signal, skipErrorLog: true, retryForever: true });
 
             if (resImages.ok) {
                 const data = await resImages.json();
@@ -56,13 +53,8 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 });
                 setDynamicImages(mapped);
             }
-
-            if (resCats.ok) {
-                setCategories(await resCats.json());
-            }
-
         } catch (e: any) {
-            // Retry logic handled inside robustFetch(retryForever: true)
+            // Retry handled by wrapper
         } finally {
             if (!signal?.aborted) {
                 setLoading(false);
@@ -70,9 +62,20 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }, []);
 
+    const fetchCategories = useCallback(async (signal?: AbortSignal) => {
+        try {
+            const res = await robustFetch('/icategorys', { signal, skipErrorLog: true, retryForever: true });
+            if (res.ok) {
+                const data = await res.json();
+                setCategories(data);
+            }
+        } catch (e) {
+            // Silent fail
+        }
+    }, []);
+
     const fetchRequests = useCallback(async (signal?: AbortSignal) => {
         try {
-            // FIX: Endpoint corrected to '/images/requests' (plural) based on backend
             const res = await robustFetch('/images/requests', { signal, skipErrorLog: true, retryForever: true });
             if (res.ok) {
                 const data = await res.json();
@@ -91,31 +94,21 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }, []);
 
-    // Robust Polling Mechanism
     useEffect(() => {
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
 
-        // Initial Load
-        fetchData(signal);
         fetchRequests(signal);
-
-        // Interval Polling
-        const intervalId = setInterval(() => {
-            if (!document.hidden) { 
-                fetchData(signal);
-                fetchRequests(signal);
-            }
-        }, 5000); // Polling every 5 seconds for faster updates
+        fetchCategories(signal);
 
         return () => {
             if (abortControllerRef.current) abortControllerRef.current.abort();
-            clearInterval(intervalId);
         };
-    }, [fetchData, fetchRequests]);
+    }, [fetchRequests, fetchCategories]);
 
     const refreshImages = () => fetchData();
     const refreshRequests = () => fetchRequests();
+    const refreshCategories = () => fetchCategories();
 
     const uploadImageUrl = async (url: string, tags: string, signal?: AbortSignal) => {
         const res = await robustFetch('/upload/url', {
@@ -162,39 +155,6 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         await fetchData(signal);
     };
 
-    const addCategory = async (name: string, tags: string[], signal?: AbortSignal) => {
-        const res = await robustFetch('/icategory/add', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, tags }),
-            signal
-        });
-        if(!res.ok) throw new Error("Failed to add category");
-        await fetchData(signal); 
-    };
-
-    const removeCategory = async (id: string, signal?: AbortSignal) => {
-        const res = await robustFetch('/icategory/remove', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id }),
-            signal
-        });
-        if(!res.ok) throw new Error("Failed to remove category");
-        await fetchData(signal);
-    };
-
-    const updateCategoryTags = async (id: string, tags: string[], signal?: AbortSignal) => {
-        const res = await robustFetch(`/icategory/${id}/tags`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tags }),
-            signal
-        });
-        if(!res.ok) throw new Error("Failed to update category tags");
-        await fetchData(signal);
-    };
-
     const submitImageRequest = async (files: File[], urls: string[], tags: string, signal?: AbortSignal) => {
         const fd = new FormData();
         files.forEach(f => fd.append('files', f));
@@ -206,7 +166,6 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         
         fd.append('images', JSON.stringify(metadata));
 
-        // Note: Endpoint for CREATING request is /images/request (singular) per backend
         const res = await robustFetch('/images/request', {
             method: 'POST',
             body: fd,
@@ -242,24 +201,59 @@ export const ImageProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     };
 
+    const addCategory = async (name: string, tags: string[], signal?: AbortSignal) => {
+        const res = await robustFetch('/icategory/add', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, tags }),
+            signal
+        });
+        if (!res.ok) throw new Error("Failed to add category");
+        await fetchCategories(signal);
+    };
+
+    const removeCategory = async (id: string, signal?: AbortSignal) => {
+        const res = await robustFetch('/icategory/remove', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+            signal
+        });
+        if (!res.ok) throw new Error("Failed to remove category");
+        setCategories(prev => prev.filter(c => c.id !== id));
+        await fetchCategories(signal);
+    };
+
+    const updateCategoryTags = async (id: string, tags: string[], signal?: AbortSignal) => {
+        const res = await robustFetch(`/icategory/${id}/tags`, {
+            method: 'PATCH',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tags }),
+            signal
+        });
+        if (!res.ok) throw new Error("Failed to update category tags");
+        await fetchCategories(signal);
+    };
+
     return (
         <ImageContext.Provider value={{ 
             dynamicImages, 
-            categories,
+            categories, 
             requests,
             myRequestIds,
             loading, 
             refreshImages,
             refreshRequests,
+            refreshCategories,
             uploadImageFile,
             uploadImageUrl,
             updateImageTags,
             deleteImage,
+            submitImageRequest,
+            deleteImageRequest,
             addCategory,
             removeCategory,
-            updateCategoryTags,
-            submitImageRequest,
-            deleteImageRequest
+            updateCategoryTags
         }}>
             {children}
         </ImageContext.Provider>

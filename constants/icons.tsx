@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Twitter, Youtube, Instagram, Sun, Moon, Languages, Star, Search, ChevronDown, ChevronRight, Link as LinkIcon, ExternalLink, ClipboardCopy, Home, Users, MessageSquare, Image as ImageIcon, Link2, UserCircle, Award, X, Check, ZoomIn, ZoomOut, PowerOff, RotateCcw, Map as MapIcon, RefreshCw, Layers, SearchX, Tag, Filter, ArrowUp, ArrowDown, AlertCircle, Vote as VoteIcon, History, Clock, Trophy, Lock, LogOut, Eye, Plus, Edit, Trash, Save, Key, ShieldCheck, ArrowLeft, ArrowRight, FileText, Calendar, Trash2, Settings, Ban, RotateCw, Minus, CheckCircle2, Upload, AlertTriangle, FolderOpen, PenTool, EyeOff, Loader2, Database, Radio, Play, Bell, BellOff, Snowflake, Video, Tv, UserCheck, MoreVertical, XCircle, RefreshCcw, Circle, Wifi, WifiOff, List, UserPlus, CornerUpRight, Activity, Send, Clapperboard, Download, ScrollText } from 'lucide-react';
+import { Twitter, Youtube, Instagram, Sun, Moon, Languages, Star, Search, ChevronDown, ChevronRight, Link as LinkIcon, ExternalLink, ClipboardCopy, Home, Users, MessageSquare, Image as ImageIcon, Link2, UserCircle, Award, X, Check, ZoomIn, ZoomOut, PowerOff, RotateCcw, Map as MapIcon, RefreshCw, Layers, SearchX, Tag, Filter, ArrowUp, ArrowDown, AlertCircle, Vote as VoteIcon, History, Clock, Trophy, Lock, LogOut, Eye, Plus, Edit, Trash, Save, Key, ShieldCheck, ArrowLeft, ArrowRight, FileText, Calendar, Trash2, Settings, Ban, RotateCw, Minus, CheckCircle2, Upload, AlertTriangle, FolderOpen, PenTool, EyeOff, Loader2, Database, Radio, Play, Bell, BellOff, Snowflake, Video, Tv, UserCheck, MoreVertical, XCircle, RefreshCcw, Circle, Wifi, WifiOff, List, UserPlus, CornerUpRight, Activity, Send, Clapperboard, Download, ScrollText, CornerUpLeft } from 'lucide-react';
 
 const Kick = (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
     <img src="https://i.postimg.cc/65CJczDK/1726118265kick-logo-white.png" alt="Kick Logo" {...props} className={`${props.className || ''} object-contain`} />
@@ -101,6 +101,7 @@ export const Icons = {
   List: (props: React.SVGProps<SVGSVGElement>) => <List {...props} />,
   UserPlus: (props: React.SVGProps<SVGSVGElement>) => <UserPlus {...props} />,
   CornerUpRight: (props: React.SVGProps<SVGSVGElement>) => <CornerUpRight {...props} />,
+  CornerUpLeft: (props: React.SVGProps<SVGSVGElement>) => <CornerUpLeft {...props} />,
   Send: (props: React.SVGProps<SVGSVGElement>) => <Send {...props} />,
   Analyzing: (props: React.SVGProps<SVGSVGElement>) => <Activity {...props} />,
   Activity: (props: React.SVGProps<SVGSVGElement>) => <Activity {...props} />,
