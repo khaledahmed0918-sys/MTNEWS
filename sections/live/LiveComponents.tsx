@@ -50,6 +50,8 @@ export const StreamerCard: React.FC<{
         await onToggleNotify(streamer.id);
     };
 
+    const socials = streamer.links || {};
+
     return (
         <GlassCard onClick={onClick} className="flex flex-col !p-0 overflow-hidden group h-full hover:border-orange-500/50 transition-all duration-300" isSnowy={snowEnabled}>
             <div className="h-28 w-full relative bg-neutral-900">
@@ -69,9 +71,17 @@ export const StreamerCard: React.FC<{
                     <div className={`w-16 h-16 rounded-full overflow-hidden bg-black transition-shadow duration-300 ${isLive ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''} border-4 border-[#1a1a1a]`}>
                         <RobustImage src={avatar} className="w-full h-full object-cover" />
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(streamer.id); }} className={`mb-1 ${streamer.isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}>
-                        <Icons.Star className={`w-5 h-5 ${streamer.isFavorite ? 'fill-current' : ''}`} />
-                    </button>
+                    <div className="flex gap-2 mb-1">
+                        {/* Social Icons */}
+                        {socials.twitter && <a href={socials.twitter} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-gray-500 hover:text-[#1DA1F2]"><Icons.Twitter className="w-4 h-4" /></a>}
+                        {socials.instagram && <a href={socials.instagram} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-gray-500 hover:text-[#E4405F]"><Icons.Instagram className="w-4 h-4" /></a>}
+                        {socials.youtube && <a href={socials.youtube} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-gray-500 hover:text-[#FF0000]"><Icons.YouTube className="w-4 h-4" /></a>}
+                        {socials.discord && <a href={socials.discord} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-gray-500 hover:text-[#5865F2]"><Icons.Discord className="w-4 h-4" /></a>}
+                        
+                        <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(streamer.id); }} className={`${streamer.isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}>
+                            <Icons.Star className={`w-5 h-5 ${streamer.isFavorite ? 'fill-current' : ''}`} />
+                        </button>
+                    </div>
                 </div>
                 <div className="mb-3">
                     <h3 className="font-bold text-white text-lg leading-tight line-clamp-1">{streamer.kickUsername}</h3>
@@ -199,6 +209,24 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
                                         <a href={links.discord} target="_blank" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors text-white">
                                             <div className="p-2 bg-[#5865F2] text-white rounded-full"><Icons.Discord className="w-4 h-4" /></div>
                                             <span className="font-bold">Discord</span>
+                                        </a>
+                                    )}
+                                    {links.twitter && (
+                                        <a href={links.twitter} target="_blank" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors text-white">
+                                            <div className="p-2 bg-[#1DA1F2] text-white rounded-full"><Icons.Twitter className="w-4 h-4" /></div>
+                                            <span className="font-bold">Twitter</span>
+                                        </a>
+                                    )}
+                                    {links.instagram && (
+                                        <a href={links.instagram} target="_blank" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors text-white">
+                                            <div className="p-2 bg-[#E4405F] text-white rounded-full"><Icons.Instagram className="w-4 h-4" /></div>
+                                            <span className="font-bold">Instagram</span>
+                                        </a>
+                                    )}
+                                    {links.youtube && (
+                                        <a href={links.youtube} target="_blank" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors text-white">
+                                            <div className="p-2 bg-[#FF0000] text-white rounded-full"><Icons.YouTube className="w-4 h-4" /></div>
+                                            <span className="font-bold">YouTube</span>
                                         </a>
                                     )}
                                 </div>
