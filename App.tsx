@@ -18,6 +18,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SnowEffect } from './components/SnowEffect';
 import { AdminAuthModal } from './components/modals/AuthModals';
 import { LogoutConfirmModal } from './components/modals/ConfirmationModals';
+import { QuranCard } from './components/ui/QuranCard'; 
+import { RamadanIntro, BackgroundCrescent } from './components/ui/RamadanDecorations';
 
 // Layout Components
 import { Sidebar } from './components/layout/Sidebar';
@@ -149,6 +151,10 @@ const AppContent: React.FC = () => {
     return (
         <div className="flex h-screen w-full bg-gradient-to-br from-black via-blue-950/30 to-black text-white font-sans selection:bg-orange-500/30 selection:text-orange-200 overflow-hidden relative">
             <SnowEffect enabled={snowEnabled} />
+            <BackgroundCrescent />
+            
+            {/* Ramadan Intro Overlay */}
+            <RamadanIntro />
 
             {/* Sidebar (Desktop & Mobile) */}
             <Sidebar 
@@ -188,6 +194,7 @@ const AppContent: React.FC = () => {
                                 } as any)}
                                 className={`w-full ${activeSection === 'Home' ? 'max-w-[1600px]' : 'max-w-[1900px]'} mx-auto min-h-full ${activeSection === 'Analyzing' ? 'h-full' : 'px-4 md:px-0 pt-4 md:pt-0'}`}
                             >
+                                <QuranCard section={activeSection} />
                                 {renderSection()}
                             </motion.div>
                         </AnimatePresence>

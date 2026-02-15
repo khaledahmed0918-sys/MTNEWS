@@ -15,6 +15,7 @@ export const ADMIN_CREDENTIALS = {
 export const appConfig = {
     donateLink: 'https://dkn.to/mtnews',
     addImages: true, // Enable/Disable User Image Requests
+    ramadanMode: true, // Enable/Disable Ramadan Theme (Intro + Lanterns)
 };
 
 // --- NAVIGATION CONFIG ---

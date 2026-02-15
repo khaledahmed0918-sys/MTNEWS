@@ -43,7 +43,11 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
         <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative min-h-[600px] pb-24">
             {/* Control Bar */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <GlassCard className="flex-1 w-full !rounded-full !p-2 flex items-center relative shadow-lg" isSnowy={snowEnabled}>
+                <GlassCard 
+                    className="flex-1 w-full !rounded-full !p-2 flex items-center relative shadow-lg" 
+                    isSnowy={snowEnabled}
+                    decoration="sitting" // Sitting lantern for search bar
+                >
                     <Icons.Search className={`absolute text-gray-400 w-5 h-5 ${dir==='rtl' ? 'right-5' : 'left-5'}`} />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchLive')} className={`w-full bg-transparent p-3 outline-none text-white placeholder-gray-500 ${dir==='rtl' ? 'pr-14 pl-4' : 'pl-14 pr-4'}`} />
                 </GlassCard>

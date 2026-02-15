@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Icons } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { Streamer } from '../../types';
@@ -38,6 +38,15 @@ export const StreamerCard: React.FC<{
     snowEnabled: boolean 
 }> = ({ streamer, onClick, onToggleFavorite, onToggleNotify, snowEnabled }) => {
     const { t } = useI18n();
+    
+    // Deterministic random decoration based on ID (prevents re-render flickering)
+    const decorationType = useMemo(() => {
+        let hash = 0;
+        for (let i = 0; i < streamer.id.length; i++) hash = streamer.id.charCodeAt(i) + ((hash << 5) - hash);
+        // ~30% chance for a hanging lantern
+        return (Math.abs(hash) % 10 < 3) ? 'hanging' : undefined;
+    }, [streamer.id]);
+
     if (!streamer.kickData) return <StreamerCardSkeleton />;
 
     const isLive = streamer.streamData?.is_live;
@@ -53,11 +62,16 @@ export const StreamerCard: React.FC<{
     const socials = streamer.links || {};
 
     return (
-        <GlassCard onClick={onClick} className="flex flex-col !p-0 overflow-hidden group h-full hover:border-orange-500/50 transition-all duration-300" isSnowy={snowEnabled}>
+        <GlassCard 
+            onClick={onClick} 
+            className="flex flex-col !p-0 overflow-hidden group h-full hover:border-orange-500/50 transition-all duration-300" 
+            isSnowy={snowEnabled}
+            decoration={decorationType} // Randomly hanging lantern
+        >
             <div className="h-28 w-full relative bg-neutral-900">
                 <RobustImage src={banner} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                <div className="absolute top-3 right-3 flex gap-2">
+                <div className="absolute top-3 right-3 flex gap-2 z-10">
                     <button onClick={handleNotifyClick} className={`p-1.5 rounded-full backdrop-blur-md ${streamer.notificationsEnabled ? 'bg-orange-500 text-white' : 'bg-black/40 text-gray-400 hover:text-white'}`}>
                         {streamer.notificationsEnabled ? <Icons.Bell className="w-3.5 h-3.5" /> : <Icons.BellOff className="w-3.5 h-3.5" />}
                     </button>
@@ -68,10 +82,10 @@ export const StreamerCard: React.FC<{
             </div>
             <div className="px-4 pb-4 relative flex-1 flex flex-col">
                 <div className="flex justify-between items-end -mt-8 mb-2">
-                    <div className={`w-16 h-16 rounded-full overflow-hidden bg-black transition-shadow duration-300 ${isLive ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''} border-4 border-[#1a1a1a]`}>
+                    <div className={`w-16 h-16 rounded-full overflow-hidden bg-black transition-shadow duration-300 ${isLive ? 'shadow-[0_0_20px_rgba(34,197,94,0.6)]' : ''} border-4 border-[#1a1a1a] z-10`}>
                         <RobustImage src={avatar} className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex gap-2 mb-1">
+                    <div className="flex gap-2 mb-1 z-10">
                         {/* Social Icons */}
                         {socials.twitter && <a href={socials.twitter} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-gray-500 hover:text-[#1DA1F2]"><Icons.Twitter className="w-4 h-4" /></a>}
                         {socials.instagram && <a href={socials.instagram} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-gray-500 hover:text-[#E4405F]"><Icons.Instagram className="w-4 h-4" /></a>}
@@ -83,7 +97,7 @@ export const StreamerCard: React.FC<{
                         </button>
                     </div>
                 </div>
-                <div className="mb-3">
+                <div className="mb-3 relative z-10">
                     <h3 className="font-bold text-white text-lg leading-tight line-clamp-1">{streamer.kickUsername}</h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                         {isLive && <span className="text-green-500 font-bold">{viewers.toLocaleString()} {t('viewers')}</span>}
@@ -92,19 +106,19 @@ export const StreamerCard: React.FC<{
                 </div>
                 
                 {isLive ? (
-                    <div className="mb-3 min-h-[2.5em] p-2 rounded bg-white/5 border border-white/10">
+                    <div className="mb-3 min-h-[2.5em] p-2 rounded bg-white/5 border border-white/10 relative z-10">
                         <p className="text-xs font-bold text-white line-clamp-2">{streamer.streamData?.title || t('streamTitle')}</p>
                     </div>
                 ) : (
-                    <p className="text-xs text-gray-400 line-clamp-2 mb-3 min-h-[2.5em]">{streamer.kickData?.bio || t('noBio')}</p>
+                    <p className="text-xs text-gray-400 line-clamp-2 mb-3 min-h-[2.5em] relative z-10">{streamer.kickData?.bio || t('noBio')}</p>
                 )}
 
-                <div className="flex flex-wrap gap-1 mb-4">
+                <div className="flex flex-wrap gap-1 mb-4 relative z-10">
                     {streamer.tags.slice(0, 3).map((tag, i) => (
                         <span key={i} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] text-gray-400 uppercase tracking-wide">{tag}</span>
                     ))}
                 </div>
-                <div className="mt-auto pt-3 border-t border-white/5">
+                <div className="mt-auto pt-3 border-t border-white/5 relative z-10">
                     <a href={`https://kick.com/${streamer.kickUsername}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2 w-full py-2 bg-green-600/20 hover:bg-green-600 text-green-500 hover:text-white rounded-lg font-bold text-sm transition-colors border border-green-600/50">
                         <Icons.Video className="w-4 h-4" /> {t('watchChannel')}
                     </a>

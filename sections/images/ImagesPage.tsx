@@ -136,7 +136,10 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
              <div className="flex flex-col gap-6 w-full mx-auto mb-4">
                 {/* Controls */}
                 <div className="flex flex-col md:flex-row gap-4">
-                    <GlassCard className="!p-0 !rounded-full flex-1 order-2 md:order-1 shadow-lg border border-white/20">
+                    <GlassCard 
+                        className="!p-0 !rounded-full flex-1 order-2 md:order-1 shadow-lg border border-white/20"
+                        decoration="sitting" // Sitting lantern for search
+                    >
                         <div className="relative w-full h-full">
                             <div className={`absolute top-1/2 -translate-y-1/2 text-orange-500 ${dir === 'rtl' ? 'right-6' : 'left-6'}`}><Icons.Search className="w-6 h-6" /></div>
                             <input 

@@ -1,8 +1,18 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { CardLantern } from './RamadanDecorations';
 
-export const GlassCard = React.forwardRef<HTMLDivElement, { children: React.ReactNode, className?: string, onClick?: (e: React.MouseEvent<HTMLDivElement>) => void, noRound?: boolean, isSnowy?: boolean }>(({ children, className = '', onClick, noRound = false, isSnowy = false }, ref) => {
+interface GlassCardProps { 
+    children: React.ReactNode, 
+    className?: string, 
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void, 
+    noRound?: boolean, 
+    isSnowy?: boolean,
+    decoration?: 'hanging' | 'sitting'
+}
+
+export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(({ children, className = '', onClick, noRound = false, isSnowy = false, decoration }, ref) => {
     // New Ultra-Premium Glass Style: Blue Tint, High Blur
     const bgClass = 'bg-slate-900/30 border border-white/10 shadow-2xl backdrop-blur-xl';
     const roundClass = noRound ? 'rounded-xl' : 'rounded-glass';
@@ -23,6 +33,17 @@ export const GlassCard = React.forwardRef<HTMLDivElement, { children: React.Reac
         >
             {/* Subtle Gradient shine */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50 pointer-events-none" />
+            
+            {/* Decoration Logic */}
+            {decoration && <CardLantern type={decoration} />}
+            
+            {/* Dynamic Card Glow if Decorated */}
+            {decoration === 'hanging' && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-b from-orange-500/10 to-transparent blur-xl pointer-events-none" />
+            )}
+            {decoration === 'sitting' && (
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-orange-500/20 blur-2xl pointer-events-none rounded-full" />
+            )}
             
             {children}
         </motion.div>

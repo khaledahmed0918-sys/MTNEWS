@@ -5,6 +5,7 @@ import { Icons, appConfig } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
 import { Section } from '../types';
 import { SpotlightCard } from '../components/ui/SpotlightCard';
+import { GlassCard } from '../components/ui/GlassCard'; // Imported for Hero
 
 interface HomeProps {
     setActiveSection: (s: Section) => void;
@@ -51,49 +52,51 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
             className="w-full flex flex-col gap-8 pb-20"
         >
             {/* Hero Section */}
-            <motion.section 
-                variants={itemVariants}
-                className="relative w-full min-h-[35vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[32px] overflow-hidden border border-white/10 bg-slate-900/30 backdrop-blur-xl"
-            >
-                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                    <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[80%] bg-orange-600/10 blur-[80px] rounded-full opacity-60" />
-                    <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] bg-blue-600/10 blur-[80px] rounded-full opacity-60" />
-                </div>
-
-                <div className="relative z-10 max-w-3xl flex flex-col gap-5">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 w-fit">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{t('systemOnline')}</span>
+            <motion.section variants={itemVariants}>
+                <GlassCard 
+                    decoration="hanging" // Hanging lantern for Home
+                    className="relative w-full min-h-[35vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[32px] overflow-hidden"
+                >
+                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                        <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[80%] bg-orange-600/10 blur-[80px] rounded-full opacity-60" />
+                        <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] bg-blue-600/10 blur-[80px] rounded-full opacity-60" />
                     </div>
 
-                    <h1 className="text-4xl md:text-6xl font-display font-black leading-[0.95] text-white tracking-tight">
-                        THE ULTIMATE <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">MTRP NEWS</span>
-                    </h1>
+                    <div className="relative z-10 max-w-3xl flex flex-col gap-5">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 w-fit">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">{t('systemOnline')}</span>
+                        </div>
 
-                    <p className="text-base md:text-lg text-gray-400 font-medium leading-relaxed max-w-lg">
-                        {t('cardInfoDescription')}
-                    </p>
+                        <h1 className="text-4xl md:text-6xl font-display font-black leading-[0.95] text-white tracking-tight">
+                            THE ULTIMATE <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">MTRP NEWS</span>
+                        </h1>
 
-                    <div className="flex flex-wrap gap-3 pt-2">
-                        <button 
-                            onClick={() => setActiveSection('Live')} 
-                            className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 hover:scale-105 transition-all flex items-center gap-2"
-                        >
-                            <Icons.Play className="w-5 h-5 fill-current" />
-                            <span>{t('startExploring')}</span>
-                        </button>
-                        <a 
-                            href={appConfig.donateLink} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="px-6 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 border border-white/10 transition-all flex items-center gap-2"
-                        >
-                            <Icons.Star className="w-5 h-5 text-orange-400" />
-                            <span>{t('donateButton')}</span>
-                        </a>
+                        <p className="text-base md:text-lg text-gray-400 font-medium leading-relaxed max-w-lg">
+                            {t('cardInfoDescription')}
+                        </p>
+
+                        <div className="flex flex-wrap gap-3 pt-2">
+                            <button 
+                                onClick={() => setActiveSection('Live')} 
+                                className="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 hover:scale-105 transition-all flex items-center gap-2"
+                            >
+                                <Icons.Play className="w-5 h-5 fill-current" />
+                                <span>{t('startExploring')}</span>
+                            </button>
+                            <a 
+                                href={appConfig.donateLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="px-6 py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 border border-white/10 transition-all flex items-center gap-2"
+                            >
+                                <Icons.Star className="w-5 h-5 text-orange-400" />
+                                <span>{t('donateButton')}</span>
+                            </a>
+                        </div>
                     </div>
-                </div>
+                </GlassCard>
             </motion.section>
 
             {/* Quick Stats Grid */}
