@@ -60,7 +60,7 @@ const getSafeChannelObj = (username: string, error = false): Channel => ({
       error: error,
       last_checked_at: new Date().toISOString(),
       bio: null,
-      followers_count: null,
+      followers_count: 0,
       banner_image: null,
       live_category: null,
       social_links: {},
@@ -129,6 +129,14 @@ export const fetchKickChannel = async (originalUsername: string): Promise<Channe
 
         const isLive = !!livestream;
         
+        // Extended Follower Extraction Logic
+        let followers = 0;
+        if (root.followers_count !== undefined) followers = root.followers_count;
+        else if (root.followersCount !== undefined) followers = root.followersCount;
+        else if (user.followers_count !== undefined) followers = user.followers_count;
+        else if (user.followersCount !== undefined) followers = user.followersCount;
+        else if (root.livestream?.channel?.followers_count) followers = root.livestream.channel.followers_count;
+
         const socialLinks: { [key: string]: string } = {};
         if (user.twitter) socialLinks.twitter = user.twitter;
         if (user.youtube) socialLinks.youtube = user.youtube;
@@ -148,7 +156,7 @@ export const fetchKickChannel = async (originalUsername: string): Promise<Channe
             live_url: `https://kick.com/${originalUsername}`,
             profile_url: `https://kick.com/${originalUsername}`,
             bio: user.bio || null,
-            followers_count: root.followers_count || user.followers_count || 0,
+            followers_count: followers,
             banner_image: root.banner_image?.url || root.banner_image || user.banner_image || null,
             live_category: livestream?.categories?.[0]?.name || null,
             social_links: socialLinks,

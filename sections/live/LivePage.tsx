@@ -28,7 +28,7 @@ const SkeletonGrid = () => (
 
 export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled }) => {
     const { t, dir } = useI18n();
-    const { streamers, loading, toggleFavorite, toggleNotify, retryStreamer } = useLive();
+    const { streamers, loading, toggleFavorite, toggleNotify, retryStreamer, retryAllFailed } = useLive();
     
     const [search, setSearch] = useState('');
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
@@ -36,6 +36,8 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
     const filteredStreamers = streamers.filter(s => 
         !search || (s.kickUsername || '').toLowerCase().includes(search.toLowerCase())
     );
+
+    const hasErrors = streamers.some(s => s.hasError);
 
     return (
         <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative min-h-[600px] pb-24">
@@ -49,6 +51,21 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                     <Icons.Search className={`absolute text-gray-400 w-5 h-5 ${dir==='rtl' ? 'right-5' : 'left-5'}`} />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('searchLive')} className={`w-full bg-transparent p-3 outline-none text-white placeholder-gray-500 ${dir==='rtl' ? 'pr-14 pl-4' : 'pl-14 pr-4'}`} />
                 </GlassCard>
+
+                {/* Reload All Failed Button - Only shows if errors exist */}
+                {hasErrors && (
+                    <motion.button 
+                        onClick={retryAllFailed}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="px-6 py-4 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <Icons.RefreshCcw className="w-5 h-5" />
+                        <span>{t('reloadAll')} ({streamers.filter(s => s.hasError).length})</span>
+                    </motion.button>
+                )}
             </div>
 
             {/* Content Area */}

@@ -182,7 +182,8 @@ export const StreamerDetailModal: React.FC<{ streamer: Streamer, onClose: () => 
                 <div className="h-64 w-full relative shrink-0">
                     <RobustImage src={banner} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-transparent to-transparent"></div>
-                    <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 hover:bg-white/10 p-2 rounded-full transition-colors"><Icons.X className="w-6 h-6 text-white" /></button>
+                    {/* Fixed Z-Index for Close Button to ensure it's clickable above the banner */}
+                    <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 hover:bg-white/10 p-2 rounded-full transition-colors z-50 cursor-pointer"><Icons.X className="w-6 h-6 text-white" /></button>
                     
                     <div className="absolute -bottom-10 left-8 flex items-end gap-6">
                         <div className="w-32 h-32 rounded-3xl border-4 border-neutral-900 shadow-2xl bg-black overflow-hidden">

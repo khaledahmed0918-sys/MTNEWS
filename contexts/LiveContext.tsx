@@ -11,6 +11,7 @@ const REFRESH_INTERVAL_MS = 180000; // 3 Minutes refresh cycle
 const BATCH_SIZE = 10;              // High Speed: 10 streamers per batch
 const BATCH_DELAY_MS = 1000;        // 1 second delay between batches
 const ERROR_DELAY_MS = 2000;        // 2 seconds penalty if error occurs
+const MAX_AUTO_RETRIES = 3;         // Number of times to try fetching before showing error
 
 interface LiveContextType {
     streamers: Streamer[];
@@ -26,6 +27,7 @@ interface LiveContextType {
     addLocalStreamer: (streamer: Streamer) => void;
     loadBatch: (start: number, count: number) => Promise<void>;
     retryStreamer: (id: string) => Promise<void>;
+    retryAllFailed: () => Promise<void>;
 }
 
 const LiveContext = createContext<LiveContextType | null>(null);
@@ -81,7 +83,7 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, [localPreferences]);
 
-    // High Speed Batch Processor with Error Rate Limiting
+    // High Speed Batch Processor with Error Rate Limiting and Internal Retry Loop
     const runBatchFetching = async (targetStreamers: Streamer[]) => {
         if (processingRef.current) return;
         processingRef.current = true;
@@ -97,61 +99,74 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 // Skip if already has error to prevent immediate loop (user must manual retry)
                 if (streamer.hasError) return;
 
-                try {
-                    // Fetch using the robust service
-                    const data = await fetchKickChannel(streamer.kickUsername);
-                    
-                    // Check if KickService returned an error object
-                    if (!data || data.error) {
-                        batchHasError = true;
-                        setStreamers(prev => prev.map(s => s.id === streamer.id ? { ...s, hasError: true, isLoading: false } : s));
-                        return;
+                let attempts = 0;
+                let success = false;
+                let data: any = null;
+
+                // 3-Attempt Retry Loop
+                while (attempts < MAX_AUTO_RETRIES && !success) {
+                    try {
+                        data = await fetchKickChannel(streamer.kickUsername);
+                        if (data && !data.error) {
+                            success = true;
+                        }
+                    } catch (e) {
+                        // Keep quiet, retry
                     }
-                    
-                    // Update state immediately upon successful data arrival
-                    setStreamers(prev => {
-                        const index = prev.findIndex(s => s.id === streamer.id);
-                        if (index === -1) return prev; 
-
-                        const updatedStreamer: Streamer = {
-                            ...prev[index],
-                            hasError: false,
-                            kickData: {
-                                id: 0,
-                                slug: data.username,
-                                user_id: 0,
-                                username: data.display_name,
-                                profile_pic: data.profile_pic,
-                                banner: data.banner_image || '',
-                                followers_count: data.followers_count || 0,
-                                created_at: '',
-                                bio: data.bio || ''
-                            },
-                            streamData: {
-                                id: 0,
-                                is_live: data.is_live,
-                                viewers: data.viewer_count || 0,
-                                start_time: data.live_since || data.last_stream_start_time || '',
-                                title: data.live_title || '',
-                                category_name: data.live_category || '',
-                                category_icon: '',
-                                thumbnail: ''
-                            },
-                            links: {
-                                ...prev[index].links,
-                                ...data.social_links as StreamerLinks
-                            },
-                            lastUpdated: Date.now()
-                        };
-
-                        const newList = [...prev];
-                        newList[index] = updatedStreamer;
-                        return sortStreamers(newList);
-                    });
-                } catch (e) {
-                    batchHasError = true;
-                    setStreamers(prev => prev.map(s => s.id === streamer.id ? { ...s, hasError: true } : s));
+                    attempts++;
+                    // Small delay between retries if failed
+                    if (!success && attempts < MAX_AUTO_RETRIES) {
+                        await new Promise(r => setTimeout(r, 800));
+                    }
                 }
+
+                // If failed after max retries
+                if (!success || !data || data.error) {
+                    batchHasError = true;
+                    setStreamers(prev => prev.map(s => s.id === streamer.id ? { ...s, hasError: true, isLoading: false } : s));
+                    return;
+                }
+                
+                // Update state immediately upon successful data arrival
+                setStreamers(prev => {
+                    const index = prev.findIndex(s => s.id === streamer.id);
+                    if (index === -1) return prev; 
+
+                    const updatedStreamer: Streamer = {
+                        ...prev[index],
+                        hasError: false,
+                        kickData: {
+                            id: 0,
+                            slug: data.username,
+                            user_id: 0,
+                            username: data.display_name,
+                            profile_pic: data.profile_pic,
+                            banner: data.banner_image || '',
+                            followers_count: data.followers_count || 0,
+                            created_at: '',
+                            bio: data.bio || ''
+                        },
+                        streamData: {
+                            id: 0,
+                            is_live: data.is_live,
+                            viewers: data.viewer_count || 0,
+                            start_time: data.live_since || data.last_stream_start_time || '',
+                            title: data.live_title || '',
+                            category_name: data.live_category || '',
+                            category_icon: '',
+                            thumbnail: ''
+                        },
+                        links: {
+                            ...prev[index].links,
+                            ...data.social_links as StreamerLinks
+                        },
+                        lastUpdated: Date.now()
+                    };
+
+                    const newList = [...prev];
+                    newList[index] = updatedStreamer;
+                    return sortStreamers(newList);
+                });
             }));
 
             // Rate Limit Logic: Stop 2 seconds if error, otherwise 1 second
@@ -169,6 +184,20 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (target) {
             await runBatchFetching([{...target, hasError: false}]);
         }
+    };
+
+    // Retry ALL failed streamers
+    const retryAllFailed = async () => {
+        // 1. Identify failed streamers
+        const failedStreamers = streamers.filter(s => s.hasError);
+        if (failedStreamers.length === 0) return;
+
+        // 2. Reset their status to loading (remove error flag)
+        setStreamers(prev => prev.map(s => s.hasError ? { ...s, hasError: false, kickData: undefined } : s));
+
+        // 3. Re-run batch fetching for these specific streamers
+        const targets = failedStreamers.map(s => ({ ...s, hasError: false }));
+        await runBatchFetching(targets);
     };
 
     // Initial Load
@@ -314,7 +343,8 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             acceptStreamerRequest,
             deleteStreamerRequest,
             addLocalStreamer,
-            retryStreamer
+            retryStreamer,
+            retryAllFailed
         }}>
             {children}
         </LiveContext.Provider>
