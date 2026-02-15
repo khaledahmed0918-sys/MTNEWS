@@ -10,6 +10,7 @@ import { fetchKickChannel } from '../services/KickService';
 const REFRESH_INTERVAL_MS = 180000; // 3 Minutes refresh cycle
 const BATCH_SIZE = 10;              // High Speed: 10 streamers per batch
 const BATCH_DELAY_MS = 1000;        // 1 second delay between batches
+const ERROR_DELAY_MS = 2000;        // 2 seconds penalty if error occurs
 
 interface LiveContextType {
     streamers: Streamer[];
@@ -24,6 +25,7 @@ interface LiveContextType {
     deleteStreamerRequest: (id: string) => Promise<void>;
     addLocalStreamer: (streamer: Streamer) => void;
     loadBatch: (start: number, count: number) => Promise<void>;
+    retryStreamer: (id: string) => Promise<void>;
 }
 
 const LiveContext = createContext<LiveContextType | null>(null);
@@ -38,9 +40,9 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Sorting Logic: Loaded Data > Favorites > Live > Viewers > Others
     const sortStreamers = useCallback((list: Streamer[]) => {
         return [...list].sort((a, b) => {
-            // 1. Data Loaded Status (Bubbles loaded cards to top immediately)
-            const aLoaded = !!a.kickData;
-            const bLoaded = !!b.kickData;
+            // 1. Data Loaded Status (Bubbles loaded cards to top immediately, ignoring errored ones)
+            const aLoaded = !!a.kickData && !a.hasError;
+            const bLoaded = !!b.kickData && !b.hasError;
             if (aLoaded !== bLoaded) return aLoaded ? -1 : 1;
 
             // 2. Favorites
@@ -73,12 +75,13 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 notificationsEnabled: pref.notify,
                 lastUpdated: 0,
                 addedAt: 0,
-                kickData: undefined // Skeleton state
+                kickData: undefined, // Skeleton state
+                hasError: false
             } as Streamer;
         });
     }, [localPreferences]);
 
-    // High Speed Batch Processor
+    // High Speed Batch Processor with Error Rate Limiting
     const runBatchFetching = async (targetStreamers: Streamer[]) => {
         if (processingRef.current) return;
         processingRef.current = true;
@@ -87,20 +90,32 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         for (let i = 0; i < queue.length; i += BATCH_SIZE) {
             const batch = queue.slice(i, i + BATCH_SIZE);
+            let batchHasError = false;
             
             // Fire requests in parallel
             await Promise.all(batch.map(async (streamer) => {
-                // Fetch using the robust service
-                const data = await fetchKickChannel(streamer.kickUsername);
-                
-                // Update state immediately upon data arrival
-                if (data && !data.error) {
+                // Skip if already has error to prevent immediate loop (user must manual retry)
+                if (streamer.hasError) return;
+
+                try {
+                    // Fetch using the robust service
+                    const data = await fetchKickChannel(streamer.kickUsername);
+                    
+                    // Check if KickService returned an error object
+                    if (!data || data.error) {
+                        batchHasError = true;
+                        setStreamers(prev => prev.map(s => s.id === streamer.id ? { ...s, hasError: true, isLoading: false } : s));
+                        return;
+                    }
+                    
+                    // Update state immediately upon successful data arrival
                     setStreamers(prev => {
                         const index = prev.findIndex(s => s.id === streamer.id);
                         if (index === -1) return prev; 
 
                         const updatedStreamer: Streamer = {
                             ...prev[index],
+                            hasError: false,
                             kickData: {
                                 id: 0,
                                 slug: data.username,
@@ -131,18 +146,29 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                         const newList = [...prev];
                         newList[index] = updatedStreamer;
-                        // Immediate Sort: Loaded cards jump to top
                         return sortStreamers(newList);
                     });
+                } catch (e) {
+                    batchHasError = true;
+                    setStreamers(prev => prev.map(s => s.id === streamer.id ? { ...s, hasError: true } : s));
                 }
             }));
 
-            // Smart delay: Only wait if there are more batches
+            // Rate Limit Logic: Stop 2 seconds if error, otherwise 1 second
             if (i + BATCH_SIZE < queue.length) {
-                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+                await new Promise(resolve => setTimeout(resolve, batchHasError ? ERROR_DELAY_MS : BATCH_DELAY_MS));
             }
         }
         processingRef.current = false;
+    };
+
+    // Retry single streamer manually
+    const retryStreamer = async (id: string) => {
+        setStreamers(prev => prev.map(s => s.id === id ? { ...s, hasError: false, kickData: undefined } : s)); // Reset to skeleton
+        const target = streamers.find(s => s.id === id);
+        if (target) {
+            await runBatchFetching([{...target, hasError: false}]);
+        }
     };
 
     // Initial Load
@@ -171,7 +197,8 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     useEffect(() => {
         if (!initialized) return;
         const intervalId = setInterval(() => {
-            runBatchFetching(streamers);
+            // Only refresh non-errored streamers
+            runBatchFetching(streamers.filter(s => !s.hasError));
         }, REFRESH_INTERVAL_MS); 
         return () => clearInterval(intervalId);
     }, [initialized, streamers]);
@@ -286,7 +313,8 @@ export const LiveProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             getStreamerRequests,
             acceptStreamerRequest,
             deleteStreamerRequest,
-            addLocalStreamer
+            addLocalStreamer,
+            retryStreamer
         }}>
             {children}
         </LiveContext.Provider>

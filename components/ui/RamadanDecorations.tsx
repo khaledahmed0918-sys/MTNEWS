@@ -147,7 +147,7 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
                     className="relative w-24 h-24 filter drop-shadow-2xl"
                 >
                     {/* Light Candle Glow centered behind lantern */}
-                    <div className="absolute inset-0 bg-[#F59E0B] opacity-20 blur-[30px] rounded-full animate-pulse scale-90" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#F59E0B] opacity-20 blur-[30px] rounded-full animate-pulse scale-90 w-full h-full" />
                     <LanternSvg sitting />
                 </motion.div>
             </div>
@@ -170,7 +170,7 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
                     delay: properties.delay
                 }}
                 style={{ originY: 0, originX: 0.5 }}
-                className="flex flex-col items-center"
+                className="flex flex-col items-center relative"
             >
                 {/* Realistic String */}
                 <div 
@@ -180,9 +180,9 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
 
                 {/* Lantern Body */}
                 <div className="relative transform -translate-y-1">
-                    {/* Light Candle Glow centered behind lantern body */}
+                    {/* Light Candle Glow centered BEHIND lantern body */}
                     <motion.div 
-                        className="absolute top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#F59E0B] blur-[40px] rounded-full mix-blend-screen"
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[#F59E0B] blur-[40px] rounded-full mix-blend-screen z-[-1]"
                         animate={{ opacity: [0.15, 0.3, 0.15], scale: [1, 1.1, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     />

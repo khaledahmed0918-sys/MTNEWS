@@ -22,7 +22,7 @@ export const appConfig = {
 export const navConfig: NavItem[] = [
   { id: 'Home', enabled: true },
   { id: 'Live', enabled: true },
-  { id: 'Votes', enabled: true },
+  { id: 'Votes', enabled: false },
   { id: 'Map', enabled: true },
   { id: 'Analyzing', enabled: true },
   { id: 'Threads', enabled: false },

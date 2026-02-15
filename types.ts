@@ -193,6 +193,7 @@ export interface Streamer {
     isSystem: boolean; // True if from Admin API
     isFavorite: boolean;
     notificationsEnabled: boolean;
+    hasError?: boolean; // New error state
     
     lastUpdated: number;
     addedAt: number;

@@ -28,12 +28,10 @@ const SkeletonGrid = () => (
 
 export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({ snowEnabled }) => {
     const { t, dir } = useI18n();
-    const { streamers, loading, toggleFavorite, toggleNotify } = useLive();
+    const { streamers, loading, toggleFavorite, toggleNotify, retryStreamer } = useLive();
     
     const [search, setSearch] = useState('');
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
-
-    // No useEffect for loading here - The Context handles persistence and updates
 
     const filteredStreamers = streamers.filter(s => 
         !search || (s.kickUsername || '').toLowerCase().includes(search.toLowerCase())
@@ -65,6 +63,7 @@ export const LivePage: React.FC<{ snowEnabled: boolean, isAdmin: boolean }> = ({
                                 onClick={() => setSelectedStreamer(streamer)} 
                                 onToggleFavorite={toggleFavorite} 
                                 onToggleNotify={toggleNotify} 
+                                onRetry={retryStreamer}
                                 snowEnabled={snowEnabled} 
                             />
                         </div>
