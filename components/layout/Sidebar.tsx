@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         {!isCollapsed && (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col whitespace-nowrap overflow-hidden">
                                 <h1 className="text-xl font-display font-black text-white leading-none tracking-tight">
-                                    MTRP <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">News</span>
+                                    MT <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">News</span>
                                 </h1>
                             </motion.div>
                         )}
@@ -170,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {/* Mobile Header */}
                             <div className="flex items-center justify-center gap-4 py-6">
                                 <img src="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" alt="Logo" className="w-12 h-12 object-contain" />
-                                <h1 className="text-2xl font-display font-black text-white">MTRP NEWS</h1>
+                                <h1 className="text-2xl font-display font-black text-white">MT NEWS</h1>
                             </div>
 
                             {/* Mobile Nav */}

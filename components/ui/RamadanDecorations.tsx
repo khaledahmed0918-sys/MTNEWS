@@ -74,27 +74,28 @@ export const RamadanIntro: React.FC = () => {
     );
 };
 
-// --- BACKGROUND MOON ---
+// --- BACKGROUND MOON (Adjusted Size & Position) ---
 export const BackgroundCrescent: React.FC = () => {
     if (!appConfig.ramadanMode) return null;
 
     return (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
             <motion.div
-                className="absolute top-[10%] right-[5%] opacity-40 w-[400px] h-[400px] md:w-[600px] md:h-[600px]"
+                // Smaller size, pushed further top-right, lower opacity
+                className="absolute top-[-5%] right-[-5%] opacity-30 w-[200px] h-[200px] md:w-[300px] md:h-[300px]"
                 animate={{
-                    y: [0, -30, 0],
-                    rotate: [0, 5, 0],
-                    scale: [1, 1.05, 1]
+                    y: [0, -10, 0],
+                    rotate: [0, 3, 0],
                 }}
                 transition={{
-                    duration: 12,
+                    duration: 8,
                     repeat: Infinity,
                     ease: "easeInOut"
                 }}
             >
-                <div className="absolute inset-0 bg-amber-500/10 rounded-full blur-[100px] animate-pulse" />
-                <MoonIcon className="w-full h-full drop-shadow-[0_0_50px_rgba(251,191,36,0.3)]" />
+                {/* Localized Strong Moon Glow */}
+                <div className="absolute inset-0 bg-[#FFFBEB] opacity-30 rounded-full blur-[80px] animate-pulse" />
+                <MoonIcon className="w-full h-full drop-shadow-[0_0_60px_rgba(255,251,235,0.6)]" />
             </motion.div>
         </div>
     );
@@ -122,7 +123,7 @@ const MoonIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-// --- REALISTIC LANTERN ---
+// --- REALISTIC LANTERN (Card Decoration) ---
 export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type = 'hanging' }) => {
     if (!appConfig.ramadanMode) return null;
 
@@ -145,8 +146,8 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="relative w-24 h-24 filter drop-shadow-2xl"
                 >
-                    {/* Ambient Glow on Card */}
-                    <div className="absolute inset-0 bg-orange-500/30 blur-2xl rounded-full animate-pulse" />
+                    {/* Light Candle Glow centered behind lantern */}
+                    <div className="absolute inset-0 bg-[#F59E0B] opacity-20 blur-[30px] rounded-full animate-pulse scale-90" />
                     <LanternSvg sitting />
                 </motion.div>
             </div>
@@ -179,10 +180,10 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
 
                 {/* Lantern Body */}
                 <div className="relative transform -translate-y-1">
-                    {/* Light Glow casting on card */}
+                    {/* Light Candle Glow centered behind lantern body */}
                     <motion.div 
-                        className="absolute top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-orange-500/20 blur-[40px] rounded-full"
-                        animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.1, 1] }}
+                        className="absolute top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#F59E0B] blur-[40px] rounded-full mix-blend-screen"
+                        animate={{ opacity: [0.15, 0.3, 0.15], scale: [1, 1.1, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     />
                     <LanternSvg />
@@ -193,7 +194,7 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
 };
 
 const LanternSvg = ({ sitting }: { sitting?: boolean }) => (
-    <svg width="60" height="90" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
+    <svg width="60" height="90" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_10px_rgba(245,158,11,0.3)]">
         {/* Ring */}
         <path d="M25 5 C25 2, 35 2, 35 5" stroke="#D97706" strokeWidth="2" fill="none" />
         
@@ -208,13 +209,13 @@ const LanternSvg = ({ sitting }: { sitting?: boolean }) => (
         <path d="M15 25 L20 65 M45 25 L40 65" stroke="#F59E0B" strokeWidth="0.5" opacity="0.5" />
         <path d="M12 45 H48" stroke="#F59E0B" strokeWidth="0.5" opacity="0.3" />
 
-        {/* Candle Flame - Animated */}
+        {/* Candle Flame - Animated & Bright */}
         <motion.g
-            animate={{ opacity: [0.8, 1, 0.8], scale: [0.9, 1.1, 0.9] }}
-            transition={{ duration: 0.2, repeat: Infinity }}
+            animate={{ opacity: [0.8, 1, 0.8], scale: [0.95, 1.15, 0.95] }}
+            transition={{ duration: 0.15, repeat: Infinity, repeatType: "mirror" }}
         >
-            <path d="M28 55 Q 30 45, 32 55 Q 30 60, 28 55" fill="#FEF3C7" />
-            <path d="M29 55 Q 30 48, 31 55" fill="#F59E0B" />
+            <path d="M28 55 Q 30 45, 32 55 Q 30 60, 28 55" fill="#FFFBEB" filter="url(#glow)" />
+            <path d="M29 55 Q 30 48, 31 55" fill="#FBBF24" />
         </motion.g>
         <rect x="27" y="58" width="6" height="10" fill="#DDD" rx="1" />
 
@@ -240,6 +241,13 @@ const LanternSvg = ({ sitting }: { sitting?: boolean }) => (
                 <stop offset="50%" stopColor="rgba(255,215,0,0.2)" />
                 <stop offset="100%" stopColor="rgba(255,165,0,0.3)" />
             </linearGradient>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
         </defs>
     </svg>
 );

@@ -5,7 +5,7 @@ import { Icons, appConfig } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
 import { Section } from '../types';
 import { SpotlightCard } from '../components/ui/SpotlightCard';
-import { GlassCard } from '../components/ui/GlassCard'; // Imported for Hero
+import { GlassCard } from '../components/ui/GlassCard'; 
 
 interface HomeProps {
     setActiveSection: (s: Section) => void;
@@ -26,12 +26,12 @@ const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string;
 export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
     const { t } = useI18n();
 
-    // Optimized Animation Variants
+    // Optimized Animation Variants - Reduced complexity
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
         visible: { 
             opacity: 1,
-            transition: { duration: 0.4 } 
+            transition: { duration: 0.3 } 
         }
     };
 
@@ -40,7 +40,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
         visible: { 
             opacity: 1, 
             y: 0,
-            transition: { duration: 0.3, ease: "easeOut" }
+            transition: { duration: 0.25, ease: "easeOut" }
         }
     };
 
@@ -54,12 +54,12 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
             {/* Hero Section */}
             <motion.section variants={itemVariants}>
                 <GlassCard 
-                    decoration="hanging" // Hanging lantern for Home
+                    decoration="hanging" 
                     className="relative w-full min-h-[35vh] flex flex-col items-start justify-center p-6 md:p-12 rounded-[32px] overflow-hidden"
                 >
-                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                        <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[80%] bg-orange-600/10 blur-[80px] rounded-full opacity-60" />
-                        <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] bg-blue-600/10 blur-[80px] rounded-full opacity-60" />
+                    {/* Simplified Background Blobs for Performance - Removed Orange Blob */}
+                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" style={{ willChange: 'transform' }}>
+                        <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] bg-blue-600/10 rounded-full blur-[60px]" />
                     </div>
 
                     <div className="relative z-10 max-w-3xl flex flex-col gap-5">
@@ -70,7 +70,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
 
                         <h1 className="text-4xl md:text-6xl font-display font-black leading-[0.95] text-white tracking-tight">
                             THE ULTIMATE <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">MTRP NEWS</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">MT NEWS</span>
                         </h1>
 
                         <p className="text-base md:text-lg text-gray-400 font-medium leading-relaxed max-w-lg">

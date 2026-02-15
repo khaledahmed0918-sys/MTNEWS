@@ -37,14 +37,6 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(({ chi
             {/* Decoration Logic */}
             {decoration && <CardLantern type={decoration} />}
             
-            {/* Dynamic Card Glow if Decorated */}
-            {decoration === 'hanging' && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-b from-orange-500/10 to-transparent blur-xl pointer-events-none" />
-            )}
-            {decoration === 'sitting' && (
-                <div className="absolute bottom-0 right-0 w-32 h-32 bg-orange-500/20 blur-2xl pointer-events-none rounded-full" />
-            )}
-            
             {children}
         </motion.div>
     );
