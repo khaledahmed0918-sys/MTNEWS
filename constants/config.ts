@@ -27,7 +27,7 @@ export const navConfig: NavItem[] = [
   { id: 'Analyzing', enabled: true },
   { id: 'Threads', enabled: false },
   { id: 'Images', enabled: true },
-  { id: 'Clips', enabled: true },
+  { id: 'Clips', enabled: false },
   { id: 'Links', enabled: true },
   { id: 'Tags', enabled: false },
   { id: 'Credits', enabled: true },

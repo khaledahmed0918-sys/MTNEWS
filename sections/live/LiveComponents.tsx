@@ -44,7 +44,7 @@ export const StreamerCard: React.FC<{
         let hash = 0;
         for (let i = 0; i < streamer.id.length; i++) hash = streamer.id.charCodeAt(i) + ((hash << 5) - hash);
         // ~30% chance for a hanging lantern
-        return (Math.abs(hash) % 10 < 3) ? 'hanging' : undefined;
+        return (Math.abs(hash) % 10 < 3) ? 'hanging' as const : undefined;
     }, [streamer.id]);
 
     if (!streamer.kickData) return <StreamerCardSkeleton />;

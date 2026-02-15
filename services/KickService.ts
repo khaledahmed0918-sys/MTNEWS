@@ -1,7 +1,7 @@
 
 import type { Channel, KickApiResponse } from '../types';
 
-const DEFAULT_PROFILE_PIC = 'https://i.postimg.cc/QNW4B8KQ/00WZrbng.png';
+const DEFAULT_PROFILE_PIC = 'https://i.postimg.cc/xTTpBN0X/IMG-7992.png';
 
 export const extractUsername = (input: string): string => {
     if (input.includes('kick.com/')) {
