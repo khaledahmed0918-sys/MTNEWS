@@ -707,6 +707,7 @@ export const creditsData: CreditPerson[] = [
     image: 'https://i.postimg.cc/vmGs8c0W/91106cac524b2ae1dfe17ea8ff2b46d6.png',
     socials: [
       { platform: 'Twitter', url: 'https://x.com/i_mohammedqht?s=21' },
+      { platform: 'Discord', url: '221.k' },
     ],
   },
   {
@@ -724,4 +725,12 @@ export const creditsData: CreditPerson[] = [
       { platform: 'Kick', url: 'https://kick.com/iiiBADR'}
       ],
   },
+  {
+    name: 'iWe',
+    roleKey: 'contributor',
+    image: 'https://i.postimg.cc/Hk1QYgdn/6c8213ca5d58b44b7921288439f38fcb.png',
+    socials: [
+      { platform: 'Twitter', url: 'https://x.com/1iwep?s=21' },
+    ],
+  }
 ];

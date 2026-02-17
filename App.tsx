@@ -172,8 +172,8 @@ const AppContent: React.FC = () => {
             <main 
                 className={`flex-1 h-full overflow-hidden relative flex flex-col z-10 transition-all duration-300 ease-in-out`}
             >
-                {/* Content Container - Scrollable */}
-                <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${activeSection === 'Analyzing' ? 'p-0' : 'p-0 md:p-8 pb-32 md:pb-8'}`}>
+                {/* Content Container - Scrollable - Added transform-gpu for smoother scrolling */}
+                <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar transform-gpu ${activeSection === 'Analyzing' ? 'p-0' : 'p-0 md:p-8 pb-32 md:pb-8'}`}>
                     
                     {/* Map Section Special Handling: Absolute fill when active */}
                     {activeSection === 'Map' ? (

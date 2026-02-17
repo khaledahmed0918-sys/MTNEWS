@@ -32,6 +32,7 @@ export const CreditsPage: React.FC = () => {
                             key={idx}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
                             transition={{ delay: idx * 0.1 }}
                             whileHover={{ y: -10 }}
                             className="group relative h-[400px] perspective-1000"

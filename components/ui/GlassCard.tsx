@@ -13,8 +13,8 @@ interface GlassCardProps {
 }
 
 export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(({ children, className = '', onClick, noRound = false, isSnowy = false, decoration }, ref) => {
-    // New Ultra-Premium Glass Style: Blue Tint, High Blur
-    const bgClass = 'bg-slate-900/30 border border-white/10 shadow-2xl backdrop-blur-xl';
+    // Optimization: Reduced backdrop-blur from 'xl' to 'md' for smoother scrolling
+    const bgClass = 'bg-slate-900/30 border border-white/10 shadow-2xl backdrop-blur-md';
     const roundClass = noRound ? 'rounded-xl' : 'rounded-glass';
     const hoverClass = onClick || className.includes('hover:border-orange-500') 
         ? 'hover:bg-white/5 hover:border-orange-500/30 hover:shadow-[0_0_30px_rgba(249,115,22,0.1)]' 

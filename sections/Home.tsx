@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { Icons, appConfig } from '../constants';
+import { Icons, appConfig, navConfig } from '../constants';
 import { useI18n } from '../contexts/I18nContext';
 import { Section } from '../types';
 import { SpotlightCard } from '../components/ui/SpotlightCard';
@@ -25,6 +25,14 @@ const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string;
 
 export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
     const { t } = useI18n();
+
+    // Filter cards based on enabled status in navConfig
+    const visibleSections = useMemo(() => {
+        return sectionConfigs.filter(card => {
+            const navItem = navConfig.find(n => n.id === card.id);
+            return navItem && navItem.enabled;
+        });
+    }, []);
 
     // Optimized Animation Variants - Reduced complexity
     const containerVariants: Variants = {
@@ -127,7 +135,7 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sectionConfigs.map((card, i) => (
+                    {visibleSections.map((card, i) => (
                         <SpotlightCard 
                             key={card.id}
                             title={t(card.titleKey)}

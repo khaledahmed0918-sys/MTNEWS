@@ -33,6 +33,7 @@ export const LinksPage: React.FC = () => {
                             rel="noreferrer"
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
                             transition={{ delay: idx * 0.1 }}
                             className={`group relative h-40 rounded-3xl border border-white/10 bg-[#121212] overflow-hidden flex items-center p-8 transition-all duration-300 ${style.border} hover:shadow-2xl hover:bg-white/5`}
                         >
