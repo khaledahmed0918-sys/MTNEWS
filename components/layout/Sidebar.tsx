@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [isCollapsed, setIsCollapsed] = useLocalStorage('sidebar-collapsed', false);
     const { profile, openProfileModal } = useProfile();
 
-    // Construct menu items: enabled config items only. Logs removed.
+    // Construct menu items: enabled config items only.
     const menuItems = navConfig.filter(item => item.enabled);
 
     return (
@@ -56,13 +56,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <motion.aside 
                 initial={false}
                 animate={{ width: isCollapsed ? 80 : 288 }}
-                className={`hidden md:flex flex-col h-full bg-slate-950/30 backdrop-blur-2xl border-r border-white/10 relative z-50 py-6 px-3 justify-between shadow-2xl transition-all duration-300`}
+                className={`hidden md:flex flex-col h-full bg-slate-950/30 backdrop-blur-xl border-r border-white/10 relative z-50 py-6 px-3 justify-between shadow-2xl transition-all duration-300`}
             >
                 <div className="flex flex-col h-full w-full overflow-hidden">
                     {/* Logo Area */}
                     <div className={`flex items-center gap-4 mb-8 px-2 ${isCollapsed ? 'justify-center' : ''}`}>
                         <div className="w-12 h-12 flex items-center justify-center shrink-0 relative overflow-hidden group cursor-pointer" onClick={() => setActiveSection('Home')}>
-                            <img src="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" alt="Logo" className="w-10 h-10 object-contain drop-shadow-md group-hover:scale-110 transition-transform" />
+                            <img 
+                                src="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" 
+                                alt="Logo" 
+                                className={`w-10 h-10 object-contain drop-shadow-md group-hover:scale-110 transition-transform ${lang === 'ar' ? 'rounded-full scale-110' : ''}`} 
+                            />
                         </div>
                         
                         {!isCollapsed && (
@@ -169,7 +173,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex-1 overflow-y-auto p-4 flex flex-col">
                             {/* Mobile Header */}
                             <div className="flex items-center justify-center gap-4 py-6">
-                                <img src="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" alt="Logo" className="w-12 h-12 object-contain" />
+                                <img src="https://i.postimg.cc/PrqvJ5RX/IMG-7993.png" alt="Logo" className={`w-12 h-12 object-contain ${lang === 'ar' ? 'rounded-full scale-110' : ''}`} />
                                 <h1 className="text-2xl font-display font-black text-white">MT NEWS</h1>
                             </div>
 

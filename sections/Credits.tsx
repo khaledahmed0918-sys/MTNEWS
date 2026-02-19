@@ -16,6 +16,14 @@ export const CreditsPage: React.FC = () => {
         }
     };
 
+    const getRoleColor = (role: string) => {
+        switch(role) {
+            case 'founder': return 'bg-orange-500';
+            case 'developer': return 'bg-blue-500';
+            default: return 'bg-purple-500';
+        }
+    }
+
     return (
         <div className="w-full max-w-7xl mx-auto p-4 flex flex-col gap-12">
             <div className="text-center mb-4">
@@ -26,6 +34,7 @@ export const CreditsPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {creditsData.map((person, idx) => {
                     const gradient = getRoleGradient(person.roleKey);
+                    const solidColor = getRoleColor(person.roleKey);
                     
                     return (
                         <motion.div 
@@ -59,7 +68,9 @@ export const CreditsPage: React.FC = () => {
 
                                     {/* Text Info */}
                                     <h3 className="text-2xl font-black text-white mb-2 tracking-tight group-hover:scale-105 transition-transform duration-300">{person.name}</h3>
-                                    <div className="w-12 h-1 bg-white/10 rounded-full mb-6 group-hover:w-24 group-hover:bg-orange-500 transition-all duration-500"></div>
+                                    
+                                    {/* Separator Line - Colors on Hover based on Role */}
+                                    <div className={`w-12 h-1 bg-white/10 rounded-full mb-6 group-hover:w-24 group-hover:${solidColor} transition-all duration-500`}></div>
 
                                     {/* Socials - Reveal on Hover */}
                                     <div className="mt-auto flex gap-3 translate-y-4 opacity-50 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">

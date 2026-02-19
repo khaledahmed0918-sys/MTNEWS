@@ -40,6 +40,9 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
     const [filterMode, setFilterMode] = useState<'contains' | 'excludes'>('contains');
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     
+    // Sequential Loading State
+    const [loadedCount, setLoadedCount] = useState(1); // Start by allowing 1 image to load
+    
     // Modal State
     const [modalData, setModalData] = useState<{url: string, title: string} | null>(null);
     const [showAdminModal, setShowAdminModal] = useState(false);
@@ -57,6 +60,11 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
             clearInterval(interval); // STOP API when leaving
         };
     }, []);
+
+    // Reset sequential loader when view changes
+    useEffect(() => {
+        setLoadedCount(1);
+    }, [viewMode, activeCategory, search, filterMode]);
 
     // Combine & Sort Data: Favorites First -> Static -> API
     const allImages = useMemo(() => {
@@ -128,8 +136,13 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
 
     const handleReloadAll = () => {
         setRetrySession(prev => prev + 1);
+        setLoadedCount(1);
         refreshImages();
     };
+
+    const handleImageLoad = useCallback(() => {
+        setLoadedCount(prev => prev + 1);
+    }, []);
 
     return (
         <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 relative">
@@ -258,7 +271,7 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                         
                         {/* Images Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {displayedImages.map(img => (
+                            {displayedImages.map((img, index) => (
                                 <LazyImageCard 
                                     key={img.id} 
                                     img={img} 
@@ -266,6 +279,8 @@ export const ImagesPage: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
                                     onErrorChange={() => {}}
                                     retryKey={retrySession}
                                     onDelete={isAdmin && !imagesData.some(i => i.id === img.id) ? (e) => handleDeleteClick(e, img) : undefined}
+                                    shouldLoad={index < loadedCount}
+                                    onLoad={handleImageLoad}
                                 />
                             ))}
                         </div>

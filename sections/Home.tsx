@@ -24,7 +24,7 @@ const sectionConfigs: { id: Section; icon: keyof typeof Icons; titleKey: string;
 ];
 
 export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
-    const { t } = useI18n();
+    const { t, lang } = useI18n();
 
     // Filter cards based on enabled status in navConfig
     const visibleSections = useMemo(() => {
@@ -77,8 +77,10 @@ export const HomePage: React.FC<HomeProps> = ({ setActiveSection }) => {
                         </div>
 
                         <h1 className="text-4xl md:text-6xl font-display font-black leading-[0.95] text-white tracking-tight">
-                            THE ULTIMATE <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">MT NEWS</span>
+                            {lang === 'ar' ? 'الحساب' : 'THE ULTIMATE'} <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
+                                {lang === 'ar' ? 'الإخباري' : 'MT NEWS'}
+                            </span>
                         </h1>
 
                         <p className="text-base md:text-lg text-gray-400 font-medium leading-relaxed max-w-lg">

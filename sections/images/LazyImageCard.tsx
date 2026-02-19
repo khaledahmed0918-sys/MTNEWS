@@ -12,8 +12,9 @@ export const LazyImageCard: React.FC<{
     onErrorChange: (id: string, hasError: boolean) => void,
     retryKey: number,
     onDelete?: (e: React.MouseEvent) => void,
-    onLoad?: () => void
-}> = ({ img, onClick, onErrorChange, retryKey, onDelete, onLoad }) => {
+    onLoad?: () => void,
+    shouldLoad?: boolean
+}> = ({ img, onClick, onErrorChange, retryKey, onDelete, onLoad, shouldLoad = true }) => {
     // Increased threshold for earlier loading, effectively eager for close items
     const [ref, inView] = useIntersectionObserver({ threshold: 0.01, rootMargin: '200px' });
     const [hasError, setHasError] = useState(false);
@@ -31,10 +32,12 @@ export const LazyImageCard: React.FC<{
     }, [retryKey]);
 
     const isDataUrl = img.url.startsWith('data:');
-    // Minimal query params to avoid cache busting on first load unless necessary
     const src = isDataUrl 
         ? img.url 
         : (retryCount > 0 ? `${img.url}${img.url.includes('?') ? '&' : '?'}retry=${retryCount}&t=${Date.now()}` : img.url);
+
+    // Only render image tag if it is allowed to load (sequential logic) AND in view
+    const showImage = shouldLoad && inView;
 
     return (
         <motion.div 
@@ -47,13 +50,13 @@ export const LazyImageCard: React.FC<{
             exit={{ opacity: 0, scale: 0.9 }}
             whileHover={{ y: -5 }}
         >
-            {inView ? (
+            {showImage ? (
                 <>
                     <img 
                         ref={imgRef}
                         src={src} 
                         alt={img.tags.join(', ')} 
-                        loading="eager" // Force eager loading once in viewport
+                        loading="eager" // Managed manually
                         referrerPolicy="no-referrer"
                         className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                         onLoad={() => { 
@@ -70,13 +73,15 @@ export const LazyImageCard: React.FC<{
                                 setHasError(true); 
                                 setIsLoaded(false); 
                                 onErrorChange(img.id, true);
+                                // Also trigger next load on error so queue doesn't stick
+                                if(onLoad) onLoad();
                             }
                         }}
                     />
                     
-                    {/* Only show loader if strictly not loaded and no error */}
+                    {/* Skeleton Loader */}
                     {!isLoaded && !hasError && (
-                         <div className="absolute inset-0 bg-white/5 flex flex-col items-center justify-center gap-2 animate-pulse z-10">
+                         <div className="absolute inset-0 bg-[#1a1a1a] flex flex-col items-center justify-center gap-2 z-10 animate-pulse">
                             <div className="w-8 h-8 border-2 border-white/20 border-t-orange-500 rounded-full animate-spin"></div>
                          </div>
                     )}
@@ -106,7 +111,8 @@ export const LazyImageCard: React.FC<{
                     </div>
                 </>
             ) : (
-                <div className="absolute inset-0 bg-white/5 animate-pulse" />
+                // Initial Skeleton before load permission
+                <div className="absolute inset-0 bg-[#1a1a1a] animate-pulse" />
             )}
         </motion.div>
     );

@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { appConfig } from '../../constants';
+import { useI18n } from '../../contexts/I18nContext';
 
 // --- RAMADAN INTRO OVERLAY ---
 export const RamadanIntro: React.FC = () => {
@@ -32,7 +33,8 @@ export const RamadanIntro: React.FC = () => {
                     transition={{ duration: 0.8, ease: "easeInOut" }}
                 >
                     <div className="absolute inset-0 w-full h-full">
-                        {Array.from({ length: 30 }).map((_, i) => (
+                        {/* Reduced particle count for performance */}
+                        {Array.from({ length: 15 }).map((_, i) => (
                             <motion.div
                                 key={i}
                                 className="absolute bg-white rounded-full"
@@ -76,13 +78,16 @@ export const RamadanIntro: React.FC = () => {
 
 // --- BACKGROUND MOON (Adjusted Size & Position) ---
 export const BackgroundCrescent: React.FC = () => {
+    const { dir } = useI18n();
     if (!appConfig.ramadanMode) return null;
 
+    // Use specific classes for LTR/RTL to avoid being stuck in corner
+    const positionClass = dir === 'rtl' ? 'left-4 top-4 md:left-10 md:top-10' : 'right-4 top-4 md:right-10 md:top-10';
+
     return (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
             <motion.div
-                // Smaller size, pushed further top-right, lower opacity
-                className="absolute top-[-5%] right-[-5%] opacity-30 w-[200px] h-[200px] md:w-[300px] md:h-[300px]"
+                className={`absolute opacity-30 w-[200px] h-[200px] md:w-[300px] md:h-[300px] ${positionClass}`}
                 animate={{
                     y: [0, -10, 0],
                     rotate: [0, 3, 0],
@@ -93,7 +98,6 @@ export const BackgroundCrescent: React.FC = () => {
                     ease: "easeInOut"
                 }}
             >
-                {/* Localized Strong Moon Glow */}
                 <div className="absolute inset-0 bg-[#FFFBEB] opacity-30 rounded-full blur-[80px] animate-pulse" />
                 <MoonIcon className="w-full h-full drop-shadow-[0_0_60px_rgba(255,251,235,0.6)]" />
             </motion.div>
@@ -127,7 +131,6 @@ const MoonIcon = ({ className }: { className?: string }) => (
 export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type = 'hanging' }) => {
     if (!appConfig.ramadanMode) return null;
 
-    // Randomize for hanging only
     const properties = useMemo(() => {
         return {
             leftPos: 10 + Math.random() * 80,
@@ -139,15 +142,15 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
 
     if (type === 'sitting') {
         return (
-            <div className="absolute right-[-10px] bottom-[-10px] z-[50] pointer-events-none opacity-90">
+            <div className="absolute right-0 bottom-0 z-[50] pointer-events-none opacity-90 pr-2 pb-2" aria-hidden="true">
                 <motion.div
                     initial={{ rotate: 45, y: 10 }}
                     animate={{ y: [10, 5, 10], rotate: [45, 42, 45] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative w-24 h-24 filter drop-shadow-2xl"
+                    className="relative w-24 h-24 filter drop-shadow-2xl flex items-center justify-center"
                 >
-                    {/* Light Candle Glow centered behind lantern */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#F59E0B] opacity-20 blur-[30px] rounded-full animate-pulse scale-90 w-full h-full" />
+                    {/* Light Candle Glow centered perfectly behind lantern - INSIDE swing group */}
+                    <div className="absolute bg-[#F59E0B] opacity-30 blur-[30px] rounded-full animate-pulse w-24 h-24" style={{ zIndex: -1 }} />
                     <LanternSvg sitting />
                 </motion.div>
             </div>
@@ -158,6 +161,7 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
         <div 
             className="absolute top-0 pointer-events-none z-[60]"
             style={{ left: `${properties.leftPos}%` }}
+            aria-hidden="true"
         >
             <motion.div
                 initial={{ rotate: 3 }}
@@ -178,11 +182,11 @@ export const CardLantern: React.FC<{ type?: 'hanging' | 'sitting' }> = ({ type =
                     style={{ height: `${properties.stringLength}px` }} 
                 />
 
-                {/* Lantern Body */}
-                <div className="relative transform -translate-y-1">
+                {/* Lantern Body & Glow inside swing container */}
+                <div className="relative transform -translate-y-1 flex items-center justify-center">
                     {/* Light Candle Glow centered BEHIND lantern body */}
                     <motion.div 
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[#F59E0B] blur-[40px] rounded-full mix-blend-screen z-[-1]"
+                        className="absolute w-32 h-32 bg-[#F59E0B] blur-[40px] rounded-full mix-blend-screen z-[-1]"
                         animate={{ opacity: [0.15, 0.3, 0.15], scale: [1, 1.1, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     />

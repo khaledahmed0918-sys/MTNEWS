@@ -23,6 +23,7 @@ const Snowflake: React.FC<{ id: number }> = React.memo(({ id }) => {
 
 export const SnowEffect: React.FC<{ enabled: boolean }> = ({ enabled }) => {
     if (!enabled) return null;
-    const flakes = Array.from({ length: 50 }).map((_, i) => <Snowflake key={i} id={i} />);
+    // Reduced from 50 to 20 for initial load performance
+    const flakes = Array.from({ length: 20 }).map((_, i) => <Snowflake key={i} id={i} />);
     return <div className="Snow">{flakes}</div>;
 };

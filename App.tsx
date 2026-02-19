@@ -5,7 +5,7 @@ import { Section } from './types';
 import { ADMIN_CREDENTIALS, Icons, navConfig } from './constants';
 
 // Providers
-import { I18nProvider } from './contexts/I18nContext';
+import { I18nProvider, useI18n } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { GlobalActionsLayer } from './contexts/GlobalActionsContext';
 import { LiveProvider } from './contexts/LiveContext';
@@ -13,6 +13,7 @@ import { ImageProvider } from './contexts/ImageContext';
 import { ProfileProvider } from './contexts/ProfileContext';
 import { ClipProvider } from './contexts/ClipContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useLocalStorage } from './hooks';
 
 // Components
 import { SnowEffect } from './components/SnowEffect';
@@ -61,8 +62,9 @@ const AppContent: React.FC = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [snowEnabled, setSnowEnabled] = useState(false);
+    const [snowEnabled, setSnowEnabled] = useLocalStorage('mtnews-snow', true); // Default true
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const { t } = useI18n();
     
     // Sidebar State (Mobile)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -172,8 +174,8 @@ const AppContent: React.FC = () => {
             <main 
                 className={`flex-1 h-full overflow-hidden relative flex flex-col z-10 transition-all duration-300 ease-in-out`}
             >
-                {/* Content Container - Scrollable - Added transform-gpu for smoother scrolling */}
-                <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar transform-gpu ${activeSection === 'Analyzing' ? 'p-0' : 'p-0 md:p-8 pb-32 md:pb-8'}`}>
+                {/* Content Container - Scrollable - Removed transform-gpu to fix scroll lag */}
+                <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar ${activeSection === 'Analyzing' ? 'p-0' : 'p-0 md:p-8 pb-32 md:pb-8'} flex flex-col`}>
                     
                     {/* Map Section Special Handling: Absolute fill when active */}
                     {activeSection === 'Map' ? (
@@ -199,6 +201,8 @@ const AppContent: React.FC = () => {
                             </motion.div>
                         </AnimatePresence>
                     )}
+                    
+                    {/* Footer Removed */}
                 </div>
                 
                 {/* Hotbar (Mobile Only) - Hidden if Sidebar is Open */}
