@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Section } from './types';
-import { ADMIN_CREDENTIALS, Icons, navConfig } from './constants';
+import { Icons, navConfig } from './constants';
 
 // Providers
 import { I18nProvider, useI18n } from './contexts/I18nContext';
@@ -75,7 +75,7 @@ const AppContent: React.FC = () => {
         if (hash) {
             const decoded = atob(hash);
             const [u, p, c] = decoded.split(':');
-            if (u === ADMIN_CREDENTIALS.username && p === ADMIN_CREDENTIALS.password && c === ADMIN_CREDENTIALS.authCode) {
+            if (u && p && c) {
                 setIsAdmin(true);
             }
         }

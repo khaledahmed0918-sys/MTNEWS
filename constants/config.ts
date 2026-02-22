@@ -5,11 +5,8 @@ import { NavItem } from '../types';
 export const API_BASE = "https://dolabriform-fascinatedly-lecia.ngrok-free.dev";
 
 // --- CREDENTIALS ---
-export const ADMIN_CREDENTIALS = {
-    username: 'ASWAYZ3297',
-    password: 'mTcAs7293',
-    authCode: '03829'
-};
+// Credentials handled via API
+
 
 // --- APP CONFIGURATION ---
 export const appConfig = {

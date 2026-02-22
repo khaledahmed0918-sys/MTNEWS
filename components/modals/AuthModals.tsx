@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Icons, ADMIN_CREDENTIALS } from '../../constants';
+import { Icons, API_BASE } from '../../constants';
 import { useI18n } from '../../contexts/I18nContext';
 import { GlassCard } from '../ui/GlassCard';
 import { InputWithEye } from '../ui/SharedInputs';
@@ -18,7 +18,7 @@ export const AdminAuthModal: React.FC<{ onClose: () => void; onLogin: () => void
     // Helper to remove invisible unicode characters that might be copied by mistake
     const sanitize = (str: string) => str.replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '').trim();
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         let hasError = false;
         const newShake = { username: false, password: false, auth: false, button: false };
 
@@ -36,21 +36,28 @@ export const AdminAuthModal: React.FC<{ onClose: () => void; onLogin: () => void
             return;
         }
 
-        // Check against constants
-        if (cleanUser === ADMIN_CREDENTIALS.username && cleanPass === ADMIN_CREDENTIALS.password && cleanCode === ADMIN_CREDENTIALS.authCode) {
-            logAction('admin', `Admin Login: ${cleanUser}`, `Auth Code used: ${cleanCode}`);
-            
-            // Store unique hash for session validation
-            const sessionHash = btoa(`${cleanUser}:${cleanPass}:${cleanCode}`);
-            localStorage.setItem('mtnews-auth-hash', sessionHash);
-            
-            setIsSuccess(true);
-            setTimeout(() => {
-                onLogin();
-                onClose();
-            }, 1500);
-        } else {
-            console.error('Login Failed. Input:', { cleanUser, cleanPass, cleanCode });
+        // Check against API
+        try {
+            const response = await fetch(`${API_BASE}/login/${cleanUser}/${cleanPass}/${cleanCode}`);
+            const isValid = await response.json();
+
+            if (isValid === true) {
+                logAction('admin', `Admin Login: ${cleanUser}`, `Auth Code used: ${cleanCode}`);
+                
+                // Store unique hash for session validation
+                const sessionHash = btoa(`${cleanUser}:${cleanPass}:${cleanCode}`);
+                localStorage.setItem('mtnews-auth-hash', sessionHash);
+                
+                setIsSuccess(true);
+                setTimeout(() => {
+                    onLogin();
+                    onClose();
+                }, 1500);
+            } else {
+                throw new Error('Invalid credentials');
+            }
+        } catch (error) {
+            console.error('Login Failed:', error);
             setShake({ ...newShake, button: true, username: true, password: true, auth: true });
             setTimeout(() => setShake({ username: false, password: false, auth: false, button: false }), 500);
         }
